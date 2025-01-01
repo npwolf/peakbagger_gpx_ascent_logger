@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Add Ascent to Peakbagger",
+  "version": "1.0",
+  "description": "Automatically fill Peakbagger ascent form using GPX data",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.peakbagger.com/*",
+    "https://peakbagger.com/*"
+  ],
+  "action": {
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [{
+    "matches": ["https://www.peakbagger.com/*", "https://peakbagger.com/*"],
+    "js": ["content.js"]
+  }]
+}
