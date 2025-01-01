@@ -76,20 +76,32 @@
         #progress{
             margin-top: 10px;
         }
+
+        #login-section {
+            text-align: center;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
-    <h1>Peakbagger Ascent Uploader</h1>
+    <div id="login-section" class="hidden">
+        <p>User not logged in to peakbagger.com</p>
+        <button id="login-button">Login to Peakbagger</button>
+    </div>
 
-    <input type="file" id="gpx-files" accept=".gpx" style="width: 100%; box-sizing: border-box;">
-    <div id="file-list"></div>
-    <button id="process-files">Process File</button>
-    <div id="progress" class="hidden">Processing...</div>
+    <div id="main-content" class="hidden">
+        <h1>Peakbagger Ascent Uploader</h1>
 
-    <div id="peak-selection" class="hidden">
-        <h2>Select Summits</h2>
-        <div id="peak-containers"></div>
-        <button id="submit-ascents">Submit Ascents</button>
+        <input type="file" id="gpx-files" multiple accept=".gpx" style="width: 100%; box-sizing: border-box;">
+        <div id="file-list"></div>
+        <button id="process-files">Process Files</button>
+        <div id="progress" class="hidden">Processing...</div>
+
+        <div id="peak-selection" class="hidden">
+            <h2>Select Summits</h2>
+            <div id="peak-containers"></div>
+            <button id="submit-ascents">Submit Ascents</button>
+        </div>
     </div>
 
     <script src="popup.js"></script>

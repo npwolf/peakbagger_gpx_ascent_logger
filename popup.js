@@ -1,4 +1,11 @@
 // popup.js
+let userId = null;
+
+document.addEventListener('DOMContentLoaded', checkLoginStatus);
+document.getElementById('login-button').addEventListener('click', () => {
+    chrome.tabs.create({ url: 'https://www.peakbagger.com/Default.aspx' });
+});
+
 document.getElementById('gpx-files').addEventListener('change', handleFileSelect);
 document.getElementById('process-files').addEventListener('click', processFiles);
 document.getElementById('submit-ascents').addEventListener('click', submitAscents);
@@ -68,4 +75,25 @@ function submitAscents() {
         chrome.tabs.create({ url: url });
         // You would also want to pass other data (date, route, etc.)
     });
+}
+
+async function checkLoginStatus() {
+    try {
+        const response = await fetch('https://www.peakbagger.com/Default.aspx');
+        const text = await response.text();
+        const match = text.match(/href="climber\/climber\.aspx\?cid=(\d+)">My Home Page<\/a>/);
+
+        if (match && match[1]) {
+            userId = match[1];
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+        } else {
+            document.getElementById('login-section').classList.remove('hidden');
+            document.getElementById('main-content').classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('Error checking login status:', error);
+        document.getElementById('login-section').classList.remove('hidden');
+        document.getElementById('main-content').classList.add('hidden');
+    }
 }
