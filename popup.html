@@ -14,32 +14,6 @@
             margin-bottom: 10px;
         }
 
-        #file-list {
-            margin-top: 10px;
-        }
-
-        .file-item {
-            padding: 8px;
-            border: 1px solid #ddd;
-            margin-bottom: 5px;
-            border-radius: 4px;
-            background-color: #f9f9f9;
-            display: flex; /* Use flexbox for alignment */
-            align-items: center; /* Vertically center content */
-        }
-        .file-item span{
-            flex-grow: 1; /* Allow filename to take up available space */
-        }
-        .file-item button{
-            margin-left: 5px;
-            padding: 4px 8px;
-            border: none;
-            border-radius: 4px;
-            background-color: #dc3545; /* Red for remove */
-            color: white;
-            cursor: pointer;
-        }
-
         .peak-section {
             border: 1px solid #ddd;
             margin-bottom: 10px;
@@ -92,16 +66,23 @@
     <div id="main-content" class="hidden">
         <h1>Peakbagger Ascent Uploader</h1>
 
-        <input type="file" id="gpx-files" multiple accept=".gpx" style="width: 100%; box-sizing: border-box;">
-        <div id="file-list"></div>
-        <button id="process-files">Process Files</button>
-        <div id="progress" class="hidden">Processing...</div>
+        <div id="mode-selection">
+            <button id="select-peak-button">Select Peak First</button>
+            <button id="autodetect-button">Auto-detect from GPX</button>
+        </div>
+
+        <div id="autodetect-section" class="hidden">
+          <input type="file" id="gpx-files" accept=".gpx" style="width: 100%; box-sizing: border-box;">
+          <button id="process-files">Process GPX File</button>
+          <div id="progress" class="hidden">Processing...</div>
+        </div>
 
         <div id="peak-selection" class="hidden">
-            <h2>Select Summits</h2>
+            <h2>Select Peaks to Log Ascents</h2>
             <div id="peak-containers"></div>
-            <button id="submit-ascents">Submit Ascents</button>
+            <button id="submit-ascents">Submit Ascent</button>
         </div>
+        <div id="navigation-message" class="hidden" />
     </div>
 
     <script src="popup.js"></script>

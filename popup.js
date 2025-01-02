@@ -6,11 +6,69 @@ document.getElementById('login-button').addEventListener('click', () => {
     chrome.tabs.create({ url: 'https://www.peakbagger.com/Default.aspx' });
 });
 
+// Add new event listeners for mode selection
+document.getElementById('select-peak-button').addEventListener('click', checkPeakbaggerPage);
+document.getElementById('autodetect-button').addEventListener('click', showAutodetectSection);
+
+// Existing event listeners
 document.getElementById('gpx-files').addEventListener('change', handleFileSelect);
 document.getElementById('process-files').addEventListener('click', processFiles);
 document.getElementById('submit-ascents').addEventListener('click', submitAscents);
 
 let gpxFiles = [];
+
+function showAutodetectSection() {
+    document.getElementById('autodetect-section').classList.remove('hidden');
+    document.getElementById('mode-selection').classList.add('hidden');
+    document.getElementById('navigation-message').classList.add('hidden');
+    document.getElementById('navigation-message').innerHTML = '';
+}
+
+async function checkPeakbaggerPage() {
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        const ascentEditUrl = `https://www.peakbagger.com/climber/ascentedit.aspx?cid=${userId}`;
+        console.log('Checking page:', tab.url);
+        console.log('Tab ID:', tab.id);
+
+        const navigationMessage = document.getElementById('navigation-message');
+
+        if (!tab.url.startsWith('https://www.peakbagger.com/climber/ascentedit.aspx')) {
+            navigationMessage.innerHTML =
+                `Please navigate to the <a href="#" id="ascentedit-link">Peakbagger ascent edit page</a> and select a peak first.`;
+            navigationMessage.classList.remove('hidden');
+            document.getElementById('ascentedit-link').addEventListener('click', () => {
+                chrome.tabs.create({ url: ascentEditUrl });
+            });
+            return;
+        }
+
+        const result = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => {
+              return document.getElementById('PointFt').value;
+          }
+      });
+
+      console.log('Script execution result:', result);
+
+        const elevation = parseInt(result[0].result);
+        if (!elevation || elevation <= 0) {
+            navigationMessage.innerHTML = 'Please select a peak using the "Add/Change Peak" on the edit page.';
+            navigationMessage.classList.remove('hidden');
+            return;
+        }
+
+        navigationMessage.classList.add('hidden');
+        // TODO: Implement peak selection handling
+        console.log('Peak selected with elevation:', elevation);
+    } catch (error) {
+        console.error('Error checking page:', error);
+        const navigationMessage = document.getElementById('navigation-message');
+        navigationMessage.innerHTML = 'Error accessing page content. Please make sure you\'re on the correct page.';
+        navigationMessage.classList.remove('hidden');
+    }
+}
 
 function handleFileSelect(event) {
     gpxFiles = event.target.files;
