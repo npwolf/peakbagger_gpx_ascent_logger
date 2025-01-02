@@ -173,6 +173,7 @@ async function checkLoginStatus() {
         const text = await response.text();
         const match = text.match(/href="climber\/climber\.aspx\?cid=(\d+)">My Home Page<\/a>/);
 
+        document.getElementById('loading-section').classList.add('hidden');
         if (match && match[1]) {
             userId = match[1];
             document.getElementById('login-section').classList.add('hidden');
