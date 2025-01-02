@@ -2,7 +2,15 @@ window.contentScriptLoaded = true;
 console.log('Content script loaded');
 
 let gpxData = null;
+let isGPXListenerAttached = false;
 
+function setupGPXListener() {
+  const gpxUpload = document.getElementById('GPXUpload');
+  if (gpxUpload && !isGPXListenerAttached) {
+      gpxUpload.addEventListener('change', handleGPXFile);
+      isGPXListenerAttached = true;
+  }
+}
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Message received:', request);
@@ -13,7 +21,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Received peak coordinates:', peakCoordinates);
     if (peakCoordinates) {
       const gpxUpload = document.getElementById('GPXUpload');
-      gpxUpload.addEventListener('change', handleGPXFile);
+      setupGPXListener();
+      gpxUpload.value = '';
       gpxUpload.click();
     } else {
       alert('Could not find peak coordinates');
@@ -38,6 +47,7 @@ async function handleAscentForm() {
 }
 
 function handleGPXFile(event) {
+  console.log('Handling GPX file:', event.target.files[0]);
   const file = event.target.files[0];
   const reader = new FileReader();
 
@@ -146,6 +156,7 @@ async function updateFormId(id, value) {
 }
 
 function fillFormFields(data) {
+  console.log('Filling form fields:', data);
   // Date
   const date = data.firstPoint.getElementsByTagName('time')[0].textContent.split('T')[0];
   document.getElementById('DateText').value = date;
