@@ -1,19 +1,34 @@
 // popup.js
 let userId = null;
 
-document.addEventListener('DOMContentLoaded', checkLoginStatus);
-document.getElementById('login-button').addEventListener('click', () => {
-    chrome.tabs.create({ url: 'https://www.peakbagger.com/Climber/Login.aspx' });
+document.addEventListener('DOMContentLoaded', function() {
+    checkLoginStatus();
+    document.getElementById('login-button').addEventListener('click', () => {
+        chrome.tabs.create({ url: 'https://www.peakbagger.com/Climber/Login.aspx' });
+    });
+
+    // Add event listener for the unified file selection button
+    document.getElementById('select-file-button').addEventListener('click', function() {
+        const selectedMode = document.querySelector('input[name="mode"]:checked').value;
+
+        if (selectedMode === 'autodetect') {
+            document.getElementById('autodetect-section').classList.remove('hidden');
+            document.getElementById('peak-selection').classList.add('hidden');
+            // Trigger click on the hidden file input
+            document.getElementById('gpx-files').click();
+        } else {
+            document.getElementById('autodetect-section').classList.add('hidden');
+            document.getElementById('peak-selection').classList.remove('hidden');
+            // Implement manual peak selection logic here
+            // This should show the interface for manually selecting peaks
+            checkPeakbaggerPage();
+        }
+    });
+
+    document.getElementById('gpx-files').addEventListener('change', handleFileSelect);
+    document.getElementById('process-files').addEventListener('click', processFiles);
+    document.getElementById('submit-ascents').addEventListener('click', submitAscents);
 });
-
-// Add new event listeners for mode selection
-document.getElementById('select-peak-button').addEventListener('click', checkPeakbaggerPage);
-document.getElementById('autodetect-button').addEventListener('click', showAutodetectSection);
-
-// Existing event listeners
-document.getElementById('gpx-files').addEventListener('change', handleFileSelect);
-document.getElementById('process-files').addEventListener('click', processFiles);
-document.getElementById('submit-ascents').addEventListener('click', submitAscents);
 
 let gpxFiles = [];
 
