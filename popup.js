@@ -3,7 +3,7 @@ let userId = null;
 
 document.addEventListener('DOMContentLoaded', checkLoginStatus);
 document.getElementById('login-button').addEventListener('click', () => {
-    chrome.tabs.create({ url: 'https://www.peakbagger.com/Default.aspx' });
+    chrome.tabs.create({ url: 'https://www.peakbagger.com/Climber/Login.aspx' });
 });
 
 // Add new event listeners for mode selection
@@ -60,8 +60,25 @@ async function checkPeakbaggerPage() {
         }
 
         navigationMessage.classList.add('hidden');
-        // TODO: Implement peak selection handling
         console.log('Peak selected with elevation:', elevation);
+        // Check if content script is already loaded
+        const isLoaded = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => window.hasOwnProperty('contentScriptLoaded')
+        });
+
+        if (!isLoaded[0].result) {
+            // Inject content script only if not already loaded
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ['content.js']
+            });
+        }
+        console.log('Sending processAscent message...');
+        const response = await chrome.tabs.sendMessage(tab.id, {
+            action: "processAscent"
+        }).catch(err => console.error('Message send error:', err));
+        console.log('Message sent, response:', response);
     } catch (error) {
         console.error('Error checking page:', error);
         const navigationMessage = document.getElementById('navigation-message');
