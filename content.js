@@ -89,6 +89,43 @@ function processGPXData(gpxDoc) {
   });
 }
 
+function showNotification(message) {
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #4CAF50;
+    color: white;
+    padding: 16px;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 10000;
+    font-family: Arial, sans-serif;
+    animation: slideIn 0.5s, fadeOut 0.5s 2.5s;
+  `;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  notification.textContent = message;
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    document.body.removeChild(notification);
+  }, 3000);
+}
+
 function fillFormFields(data) {
   // Date
   const date = data.firstPoint.getElementsByTagName('time')[0].textContent.split('T')[0];
@@ -142,6 +179,9 @@ function fillFormFields(data) {
   document.getElementById('DnDay').value = downDays;
   document.getElementById('DnHr').value = downHours;
   document.getElementById('DnMin').value = downMinutes;
+
+  // Show completion notification
+  showNotification('✓ Fields updated! Please review, modify and submit.');
 }
 
 function getDistance(lat1, lon1, lat2, lon2) {
