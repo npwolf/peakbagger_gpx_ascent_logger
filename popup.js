@@ -13,12 +13,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (selectedMode === 'autodetect') {
             document.getElementById('autodetect-section').classList.remove('hidden');
-            document.getElementById('peak-selection').classList.add('hidden');
+            document.getElementById('peak-selection').classList.remove('hidden');
             // Trigger click on the hidden file input
             document.getElementById('gpx-files').click();
         } else {
             document.getElementById('autodetect-section').classList.add('hidden');
-            document.getElementById('peak-selection').classList.remove('hidden');
+            document.getElementById('peak-selection').classList.add('hidden');
             // Implement manual peak selection logic here
             // This should show the interface for manually selecting peaks
             checkPeakbaggerPage();

@@ -126,6 +126,25 @@ function showNotification(message) {
   }, 3000);
 }
 
+function triggerChangeAndWait(element) {
+  return new Promise(resolve => {
+    const event = new Event('change', { bubbles: true });
+    const listener = () => {
+      element.removeEventListener('change', listener);
+      setTimeout(resolve, 0);
+    };
+    element.addEventListener('change', listener);
+    element.dispatchEvent(event);
+  });
+}
+
+async function updateFormId(id, value) {
+  const element = document.getElementById(id);
+  if (!element) return;
+  element.value = value;
+  await triggerChangeAndWait(element);
+}
+
 function fillFormFields(data) {
   // Date
   const date = data.firstPoint.getElementsByTagName('time')[0].textContent.split('T')[0];
@@ -135,15 +154,15 @@ function fillFormFields(data) {
 
   // Starting elevation
   const startElev = metersToFeet(parseFloat(data.firstPoint.getElementsByTagName('ele')[0].textContent));
-  document.getElementById('StartFt').value = Math.round(startElev);
+  updateFormId('StartFt', Math.round(startElev));
   // Net Gain
-  document.getElementById('GainFt').value = Math.round(peakElevationFt - startElev);
+  updateFormId('GainFt', Math.round(peakElevationFt - startElev));
 
   // Ending elevation
   const endElev = metersToFeet(parseFloat(data.lastPoint.getElementsByTagName('ele')[0].textContent));
-  document.getElementById('EndFt').value = Math.round(endElev);
+  updateFormId('EndFt', Math.round(endElev));
   // Net Loss
-  document.getElementById('LossFt').value = Math.round(peakElevationFt - endElev);
+  updateFormId('LossFt', Math.round(peakElevationFt - endElev));
 
   // Calculate distances and times
   const upTrack = data.trackPoints.slice(0, data.peakIndex + 1);
@@ -151,23 +170,23 @@ function fillFormFields(data) {
 
   // Up distance
   const upDistance = calculateTrackDistance(upTrack);
-  document.getElementById('UpMi').value = (upDistance / 1609.34).toFixed(2);
+  updateFormId('UpMi', (upDistance / 1609.34).toFixed(2));
 
   // Down distance
   const downDistance = calculateTrackDistance(downTrack);
-  document.getElementById('DnMi').value = (downDistance / 1609.34).toFixed(2);
+  updateFormId('DnMi', (downDistance / 1609.34).toFixed(2));
 
   // Calculate elevation gains/losses
   const upGain = calculateElevationGain(upTrack);
   console.log("Up gain:", upGain);
   const baseGain = parseInt(document.getElementById('GainFt').value) || 0;
-  document.getElementById('ExUpFt').value = Math.round(upGain - baseGain);
+  updateFormId('ExUpFt', Math.round(upGain - baseGain));
 
   const downGain = calculateElevationGain(downTrack);
   console.log("Down gain:", downGain);
   const downLoss = calculateElevationLoss(downTrack);
   const baseLoss = parseInt(document.getElementById('LossFt').value) || 0;
-  document.getElementById('ExDnFt').value = Math.round(downLoss - baseLoss);
+  updateFormId('ExDnFt', Math.round(downLoss - baseLoss));
 
   // Calculate times
   const { days: upDays, hours: upHours, minutes: upMinutes } = calculateTime(upTrack);
