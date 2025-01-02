@@ -3,6 +3,66 @@ console.log('Content script loaded');
 
 let gpxData = null;
 let isGPXListenerAttached = false;
+let peakCoordinates = null;
+
+class GPXTrack {
+  constructor(gpxDoc, peakCoordinates) {
+    this.peakCoordinates = peakCoordinates;
+    this.trackPoints = Array.from(gpxDoc.getElementsByTagName('trkpt'));
+
+    if (!this.trackPoints.length) {
+      throw new Error('No track points found in GPX file');
+    }
+
+    this.firstPoint = this.trackPoints[0];
+    this.lastPoint = this.trackPoints[this.trackPoints.length - 1];
+    this.findClosestPointToPeak();
+
+    // Calculate basic metrics
+    this.date = this.firstPoint.getElementsByTagName('time')[0].textContent.split('T')[0];
+    this.startElevation = this.getElevationInFeet(this.firstPoint);
+    this.endElevation = this.getElevationInFeet(this.lastPoint);
+
+    // Split track at peak
+    this.upTrack = this.trackPoints.slice(0, this.peakIndex + 1);
+    this.downTrack = this.trackPoints.slice(this.peakIndex);
+  }
+
+  findClosestPointToPeak() {
+    let minDistance = Infinity;
+    this.trackPoints.forEach((point, index) => {
+      const lat = parseFloat(point.getAttribute('lat'));
+      const lon = parseFloat(point.getAttribute('lon'));
+      const distance = getDistance(lat, lon, this.peakCoordinates.lat, this.peakCoordinates.lng);
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        this.closestPoint = point;
+        this.peakIndex = index;
+      }
+    });
+  }
+
+  getElevationInFeet(point) {
+    return metersToFeet(parseFloat(point.getElementsByTagName('ele')[0].textContent));
+  }
+
+  calculateSegmentMetrics(points) {
+    const distance = calculateTrackDistance(points);
+    const gain = calculateElevationGain(points);
+    const loss = calculateElevationLoss(points);
+    const time = calculateTime(points);
+    return { distance, gain, loss, time };
+  }
+
+  get upwardMetrics() {
+    return this.calculateSegmentMetrics(this.upTrack);
+  }
+
+  get downwardMetrics() {
+    return this.calculateSegmentMetrics(this.downTrack);
+  }
+}
 
 function setupGPXListener() {
   const gpxUpload = document.getElementById('GPXUpload');
@@ -62,41 +122,57 @@ function handleGPXFile(event) {
 }
 
 function processGPXData(gpxDoc) {
-  const trackPoints = Array.from(gpxDoc.getElementsByTagName('trkpt'));
-  if (!trackPoints.length) {
-    alert('No track points found in GPX file');
+  try {
+    const track = new GPXTrack(gpxDoc, peakCoordinates);
+    fillFormFields(track);
+  } catch (error) {
+    alert(error.message);
     return;
   }
+}
 
-  // Get first and last points
-  const firstPoint = trackPoints[0];
-  const lastPoint = trackPoints[trackPoints.length - 1];
+async function fillFormFields(track) {
+  console.log('Filling form fields with track:', track);
 
-  // Find point closest to peak
-  let closestPoint = null;
-  let minDistance = Infinity;
-  let peakIndex = 0;
+  // Date
+  document.getElementById('DateText').value = track.date;
 
-  trackPoints.forEach((point, index) => {
-    const lat = parseFloat(point.getAttribute('lat'));
-    const lon = parseFloat(point.getAttribute('lon'));
-    const distance = getDistance(lat, lon, peakCoordinates.lat, peakCoordinates.lng);
+  const peakElevationFt = parseInt(document.getElementById('PointFt').value);
 
-    if (distance < minDistance) {
-      minDistance = distance;
-      closestPoint = point;
-      peakIndex = index;
-    }
-  });
+  // Starting elevation and gain
+  await updateFormId('StartFt', Math.round(track.startElevation));
+  await updateFormId('GainFt', Math.round(peakElevationFt - track.startElevation));
 
-  // Fill form fields
-  fillFormFields({
-    firstPoint,
-    lastPoint,
-    closestPoint,
-    peakIndex,
-    trackPoints
-  });
+  // Ending elevation and loss
+  await updateFormId('EndFt', Math.round(track.endElevation));
+  await updateFormId('LossFt', Math.round(peakElevationFt - track.endElevation));
+
+  // Up and down distances
+  const upMetrics = track.upwardMetrics;
+  const downMetrics = track.downwardMetrics;
+
+  await updateFormId('UpMi', (upMetrics.distance / 1609.34).toFixed(2));
+  await updateFormId('DnMi', (downMetrics.distance / 1609.34).toFixed(2));
+
+  // Extra elevation gains/losses
+  const baseGain = parseInt(document.getElementById('GainFt').value) || 0;
+  await updateFormId('ExUpFt', Math.round(upMetrics.gain - baseGain));
+
+  const baseLoss = parseInt(document.getElementById('LossFt').value) || 0;
+  await updateFormId('ExDnFt', Math.round(downMetrics.loss - baseLoss));
+
+  // Times
+  const { days: upDays, hours: upHours, minutes: upMinutes } = upMetrics.time;
+  document.getElementById('UpDay').value = upDays;
+  document.getElementById('UpHr').value = upHours;
+  document.getElementById('UpMin').value = upMinutes;
+
+  const { days: downDays, hours: downHours, minutes: downMinutes } = downMetrics.time;
+  document.getElementById('DnDay').value = downDays;
+  document.getElementById('DnHr').value = downHours;
+  document.getElementById('DnMin').value = downMinutes;
+
+  showNotification('✓ Fields updated! Please review, modify and submit.');
 }
 
 function showNotification(message) {
@@ -153,65 +229,6 @@ async function updateFormId(id, value) {
   if (!element) return;
   element.value = value;
   await triggerChangeAndWait(element);
-}
-
-function fillFormFields(data) {
-  console.log('Filling form fields:', data);
-  // Date
-  const date = data.firstPoint.getElementsByTagName('time')[0].textContent.split('T')[0];
-  document.getElementById('DateText').value = date;
-
-  const peakElevationFt = parseInt(document.getElementById('PointFt').value);
-
-  // Starting elevation
-  const startElev = metersToFeet(parseFloat(data.firstPoint.getElementsByTagName('ele')[0].textContent));
-  updateFormId('StartFt', Math.round(startElev));
-  // Net Gain
-  updateFormId('GainFt', Math.round(peakElevationFt - startElev));
-
-  // Ending elevation
-  const endElev = metersToFeet(parseFloat(data.lastPoint.getElementsByTagName('ele')[0].textContent));
-  updateFormId('EndFt', Math.round(endElev));
-  // Net Loss
-  updateFormId('LossFt', Math.round(peakElevationFt - endElev));
-
-  // Calculate distances and times
-  const upTrack = data.trackPoints.slice(0, data.peakIndex + 1);
-  const downTrack = data.trackPoints.slice(data.peakIndex);
-
-  // Up distance
-  const upDistance = calculateTrackDistance(upTrack);
-  updateFormId('UpMi', (upDistance / 1609.34).toFixed(2));
-
-  // Down distance
-  const downDistance = calculateTrackDistance(downTrack);
-  updateFormId('DnMi', (downDistance / 1609.34).toFixed(2));
-
-  // Calculate elevation gains/losses
-  const upGain = calculateElevationGain(upTrack);
-  console.log("Up gain:", upGain);
-  const baseGain = parseInt(document.getElementById('GainFt').value) || 0;
-  updateFormId('ExUpFt', Math.round(upGain - baseGain));
-
-  const downGain = calculateElevationGain(downTrack);
-  console.log("Down gain:", downGain);
-  const downLoss = calculateElevationLoss(downTrack);
-  const baseLoss = parseInt(document.getElementById('LossFt').value) || 0;
-  updateFormId('ExDnFt', Math.round(downLoss - baseLoss));
-
-  // Calculate times
-  const { days: upDays, hours: upHours, minutes: upMinutes } = calculateTime(upTrack);
-  document.getElementById('UpDay').value = upDays;
-  document.getElementById('UpHr').value = upHours;
-  document.getElementById('UpMin').value = upMinutes;
-
-  const { days: downDays, hours: downHours, minutes: downMinutes } = calculateTime(downTrack);
-  document.getElementById('DnDay').value = downDays;
-  document.getElementById('DnHr').value = downHours;
-  document.getElementById('DnMin').value = downMinutes;
-
-  // Show completion notification
-  showNotification('✓ Fields updated! Please review, modify and submit.');
 }
 
 function getDistance(lat1, lon1, lat2, lon2) {
