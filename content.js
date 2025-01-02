@@ -1,10 +1,11 @@
+window.contentScriptLoaded = true;
 console.log('Content script loaded');
 
-let peakCoordinates = null;
 let gpxData = null;
 
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('Message received:', request);
   if (request.action === "processAscent") {
     handleAscentForm();
   } else if (request.action === "receivePeakCoordinates") {
@@ -21,6 +22,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 async function handleAscentForm() {
+  console.log('Handling ascent form');
   const peakListBox = document.getElementById('PeakListBox');
 
   const peakElevationFt = parseInt(document.getElementById('PointFt').value, 10);
