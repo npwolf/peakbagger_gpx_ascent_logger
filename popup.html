@@ -52,9 +52,6 @@
         button:hover{
             background-color: #0056b3;
         }
-        #progress{
-            margin-top: 10px;
-        }
 
         #login-section {
             text-align: center;
@@ -128,18 +125,13 @@
             </div>
             <p>Auto-detection will analyze your track and find possible peaks that you've reached.</p>
             <button id="select-file-button">Select GPX File</button>
-        </div>
-
-        <div id="autodetect-section" class="hidden">
-          <input type="file" id="gpx-files" accept=".gpx" style="width: 100%; box-sizing: border-box;">
-          <button id="process-files">Process GPX File</button>
-          <div id="progress" class="hidden">Processing...</div>
+            <input type="file" id="gpx-file-input" accept=".gpx" style="display: none">
         </div>
 
         <div id="peak-selection" class="hidden">
             <h2>Select Peaks to Log Ascents</h2>
             <div id="peak-containers"></div>
-            <button id="submit-ascents">Submit Ascent</button>
+            <button id="draft-ascents">Open Tabs with Drafted Ascents</button>
         </div>
         <div id="navigation-message" class="hidden" />
     </div>
