@@ -1,6 +1,10 @@
 window.contentScriptLoaded = true;
 console.log('Content script loaded');
 
+if (!window.GPXTrack) {
+  console.error('GPX utilities not loaded correctly');
+}
+
 let gpxData = null;
 let isGPXListenerAttached = false;
 let peakCoordinates = null;
@@ -64,11 +68,20 @@ function handleGPXFile(event) {
 
 function processGPXData(gpxDoc) {
   try {
-    const track = new GPXTrack(gpxDoc, peakCoordinates, parseInt(document.getElementById('PointFt').value));
-    fillFormFields(track);
+      console.log('Processing GPX data', gpxDoc);
+      console.log('GPXTrack available:', !!window.GPXTrack);
+      console.log('GPXTrack type:', typeof window.GPXTrack);
+
+      if (!window.GPXTrack) {
+          throw new Error('GPXTrack not loaded');
+      }
+
+      const track = new window.GPXTrack(gpxDoc, peakCoordinates, parseInt(document.getElementById('PointFt').value));
+      fillFormFields(track);
   } catch (error) {
-    alert(error.message);
-    return;
+      console.error('Error processing GPX:', error);
+      alert(error.message);
+      return;
   }
 }
 
@@ -107,11 +120,26 @@ async function fillFormFields(track) {
   document.getElementById('DnDay').value = descentStats.time.days;
   document.getElementById('DnHr').value = descentStats.time.hours;
   document.getElementById('DnMin').value = descentStats.time.minutes;
+  // TODO Need to handle this with message passing
+  //await clickPreviewAndNotify();
+}
 
-  showNotification('✓ Fields updated! Please review, modify and submit.');
+// Click preview and wait for page to reload before displaying notification
+async function clickPreviewAndNotify() {
+  console.log('clickPreviewAndNotify');
+  const previewButton = document.getElementById('GPXPreview');
+  if (previewButton) {
+    console.log("Clicking preview button")
+    previewButton.click();
+    await new Promise(resolve => {
+      window.onload = resolve;
+    });
+    showNotification('✓ Fields updated! Please review, modify and submit.');
+  }
 }
 
 function showNotification(message) {
+  console.log('Showing notification:', message);
   const notification = document.createElement('div');
   notification.style.cssText = `
     position: fixed;
@@ -124,7 +152,7 @@ function showNotification(message) {
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     z-index: 10000;
     font-family: Arial, sans-serif;
-    animation: slideIn 0.5s, fadeOut 0.5s 2.5s;
+    animation: slideIn 0.5s, fadeOut 0.5s 4.0s;
   `;
 
   const style = document.createElement('style');
@@ -166,3 +194,4 @@ async function updateFormId(id, value) {
   element.value = value;
   await triggerChangeAndWait(element);
 }
+

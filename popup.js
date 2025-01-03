@@ -48,12 +48,12 @@ async function checkPeakbaggerPage() {
 
         const navigationMessage = document.getElementById('navigation-message');
 
-        if (!tab.url.startsWith('https://www.peakbagger.com/climber/ascentedit.aspx')) {
+        if (!tab.url.match(/^https:\/\/(www\.)?peakbagger\.com\/climber\/ascentedit\.aspx/)) {
             navigationMessage.innerHTML =
-                `Please navigate to the <a href="#" id="ascentedit-link">Peakbagger ascent edit page</a> and select a peak first.`;
+            `Please navigate to the <a href="#" id="ascentedit-link">Peakbagger ascent edit page</a> and select a peak first.`;
             navigationMessage.classList.remove('hidden');
             document.getElementById('ascentedit-link').addEventListener('click', () => {
-                chrome.tabs.create({ url: ascentEditUrl });
+            chrome.tabs.create({ url: ascentEditUrl });
             });
             return;
         }
