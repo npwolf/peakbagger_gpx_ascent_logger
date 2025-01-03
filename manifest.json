@@ -23,8 +23,13 @@
   "background": {
     "service_worker": "background.js"
   },
-  "content_scripts": [{
-    "matches": ["https://www.peakbagger.com/*", "https://peakbagger.com/*"],
-    "js": ["content.js"]
-  }]
+  "content_scripts": [
+    {
+      "matches": ["https://www.peakbagger.com/*", "https://peakbagger.com/*"],
+      "js": [
+        "gpx-utils.js",
+        "content.js"
+      ]
+    }
+  ]
 }
