@@ -1,6 +1,9 @@
 window.contentScriptLoaded = true;
 console.log('Content script loaded');
 
+// Remove the DOMContentLoaded listener and check immediately
+checkForStoredNotification();
+
 if (!window.GPXTrack) {
   console.error('GPX utilities not loaded correctly');
 }
@@ -68,15 +71,7 @@ function handleGPXFile(event) {
 
 function processGPXData(gpxDoc) {
   try {
-      console.log('Processing GPX data', gpxDoc);
-      console.log('GPXTrack available:', !!window.GPXTrack);
-      console.log('GPXTrack type:', typeof window.GPXTrack);
-
-      if (!window.GPXTrack) {
-          throw new Error('GPXTrack not loaded');
-      }
-
-      const track = new window.GPXTrack(gpxDoc, peakCoordinates, parseInt(document.getElementById('PointFt').value));
+      const track = new GPXTrack(gpxDoc, peakCoordinates, parseInt(document.getElementById('PointFt').value));
       fillFormFields(track);
   } catch (error) {
       console.error('Error processing GPX:', error);
@@ -120,8 +115,7 @@ async function fillFormFields(track) {
   document.getElementById('DnDay').value = descentStats.time.days;
   document.getElementById('DnHr').value = descentStats.time.hours;
   document.getElementById('DnMin').value = descentStats.time.minutes;
-  // TODO Need to handle this with message passing
-  //await clickPreviewAndNotify();
+  await clickPreviewAndNotify();
 }
 
 // Click preview and wait for page to reload before displaying notification
@@ -129,12 +123,11 @@ async function clickPreviewAndNotify() {
   console.log('clickPreviewAndNotify');
   const previewButton = document.getElementById('GPXPreview');
   if (previewButton) {
-    console.log("Clicking preview button")
-    previewButton.click();
-    await new Promise(resolve => {
-      window.onload = resolve;
+    console.log("Clicking preview button");
+    await chrome.storage.local.set({
+      pendingNotification: '✓ Fields updated! Please review, modify and submit.'
     });
-    showNotification('✓ Fields updated! Please review, modify and submit.');
+    previewButton.click();
   }
 }
 
@@ -193,5 +186,22 @@ async function updateFormId(id, value) {
   if (!element) return;
   element.value = value;
   await triggerChangeAndWait(element);
+}
+
+async function checkForStoredNotification() {
+  console.log("Checking for stored notification");
+  try {
+    const result = await chrome.storage.local.get('pendingNotification');
+    if (result.pendingNotification) {
+      console.log("Found stored notification:", result.pendingNotification);
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        showNotification(result.pendingNotification);
+      }, 500);
+      await chrome.storage.local.remove('pendingNotification');
+    }
+  } catch (error) {
+    console.error('Error checking stored notification:', error);
+  }
 }
 
