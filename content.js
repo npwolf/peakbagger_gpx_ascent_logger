@@ -110,7 +110,6 @@ async function fillFormFields(track) {
   const descentStats = track.descentStats;
   await updateFormId('DnMi', descentStats.miles);
   // Extra elevation gains/losses
-  const baseLoss = parseInt(document.getElementById('LossFt').value) || 0;
   await updateFormId('ExDnFt', Math.round(descentStats.totalGain));
   document.getElementById('DnDay').value = descentStats.time.days;
   document.getElementById('DnHr').value = descentStats.time.hours;
