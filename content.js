@@ -71,6 +71,18 @@ function getPeakId() {
 
 async function processGPXData(gpxDoc) {
   try {
+      // Create a file from the GPX document
+      const serializer = new XMLSerializer();
+      const gpxString = serializer.serializeToString(gpxDoc);
+      const blob = new Blob([gpxString], { type: 'application/gpx+xml' });
+      const file = new File([blob], 'track.gpx', { type: 'application/gpx+xml' });
+
+      // Set the file to the input element
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      const fileInput = document.getElementById('GPXUpload');
+      fileInput.files = dataTransfer.files;
+
       let peakCoordinates = await getPeakCoordinates();
       console.log("processGPXData: Peak coordinates:", peakCoordinates);
       const track = new GPXTrack(gpxDoc, peakCoordinates, parseInt(document.getElementById('PointFt').value));
