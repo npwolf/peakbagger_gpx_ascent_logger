@@ -86,7 +86,7 @@ async function checkPeakbaggerPage() {
             // Inject content script only if not already loaded
             await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
-                files: ['content.js']
+                files: ['content.js', 'gpx-utils.js']
             });
         }
         console.log('Sending processAscent message...');
