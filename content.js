@@ -6,8 +6,9 @@ let isGPXListenerAttached = false;
 let peakCoordinates = null;
 
 class GPXTrack {
-  constructor(gpxDoc, peakCoordinates) {
+  constructor(gpxDoc, peakCoordinates, peakElevationFt) {
     this.peakCoordinates = peakCoordinates;
+    this.peakElevationFt = peakElevationFt;
     this.trackPoints = Array.from(gpxDoc.getElementsByTagName('trkpt'));
 
     if (!this.trackPoints.length) {
@@ -48,18 +49,19 @@ class GPXTrack {
   }
 
   calculateSegmentMetrics(points) {
-    const distance = calculateTrackDistance(points);
-    const gain = calculateElevationGain(points);
-    const loss = calculateElevationLoss(points);
-    const time = calculateTime(points);
-    return { distance, gain, loss, time };
+    const miles = (trackLengthMeters(points) / 1609.34).toFixed(2);
+    const totalGain = elevationGainFt(points);
+    const netGain = this.peakElevationFt - this.startElevation;
+    const loss = elevationLossFt(points);
+    const time = calculateDuration(points);
+    return { miles, netGain, totalGain, loss, time };
   }
 
-  get upwardMetrics() {
+  get ascentStats() {
     return this.calculateSegmentMetrics(this.upTrack);
   }
 
-  get downwardMetrics() {
+  get descentStats() {
     return this.calculateSegmentMetrics(this.downTrack);
   }
 }
@@ -123,7 +125,7 @@ function handleGPXFile(event) {
 
 function processGPXData(gpxDoc) {
   try {
-    const track = new GPXTrack(gpxDoc, peakCoordinates);
+    const track = new GPXTrack(gpxDoc, peakCoordinates, parseInt(document.getElementById('PointFt').value));
     fillFormFields(track);
   } catch (error) {
     alert(error.message);
@@ -132,45 +134,40 @@ function processGPXData(gpxDoc) {
 }
 
 async function fillFormFields(track) {
-  console.log('Filling form fields with track:', track);
+  console.log('Filling form fields');
 
   // Date
   document.getElementById('DateText').value = track.date;
 
-  const peakElevationFt = parseInt(document.getElementById('PointFt').value);
-
-  // Starting elevation and gain
+  // Ascent stats
+  // Starting elevation
   await updateFormId('StartFt', Math.round(track.startElevation));
-  await updateFormId('GainFt', Math.round(peakElevationFt - track.startElevation));
+  const ascentStats = track.ascentStats;
+  // Net gain
+  await updateFormId('GainFt', Math.round(ascentStats.netGain));
+  // PB is a little weird having a net gain and extra gain instead of one number for gain
+  const extraGain = ascentStats.totalGain - ascentStats.netGain;
+  if (extraGain > 0) {
+    await updateFormId('ExUpFt', Math.round(extraGain));
+  }
+  await updateFormId('UpMi', track.ascentStats.miles);
+  document.getElementById('UpDay').value = ascentStats.time.days;
+  document.getElementById('UpHr').value = ascentStats.time.hours;
+  document.getElementById('UpMin').value = ascentStats.time.minutes;
 
+  // Descent Stats
   // Ending elevation and loss
   await updateFormId('EndFt', Math.round(track.endElevation));
-  await updateFormId('LossFt', Math.round(peakElevationFt - track.endElevation));
-
-  // Up and down distances
-  const upMetrics = track.upwardMetrics;
-  const downMetrics = track.downwardMetrics;
-
-  await updateFormId('UpMi', (upMetrics.distance / 1609.34).toFixed(2));
-  await updateFormId('DnMi', (downMetrics.distance / 1609.34).toFixed(2));
-
+  // Net loss (note this is different than calculated loss)
+  await updateFormId('LossFt', Math.round(track.peakElevationFt - track.endElevation));
+  const descentStats = track.descentStats;
+  await updateFormId('DnMi', descentStats.miles);
   // Extra elevation gains/losses
-  const baseGain = parseInt(document.getElementById('GainFt').value) || 0;
-  await updateFormId('ExUpFt', Math.round(upMetrics.gain - baseGain));
-
   const baseLoss = parseInt(document.getElementById('LossFt').value) || 0;
-  await updateFormId('ExDnFt', Math.round(downMetrics.loss - baseLoss));
-
-  // Times
-  const { days: upDays, hours: upHours, minutes: upMinutes } = upMetrics.time;
-  document.getElementById('UpDay').value = upDays;
-  document.getElementById('UpHr').value = upHours;
-  document.getElementById('UpMin').value = upMinutes;
-
-  const { days: downDays, hours: downHours, minutes: downMinutes } = downMetrics.time;
-  document.getElementById('DnDay').value = downDays;
-  document.getElementById('DnHr').value = downHours;
-  document.getElementById('DnMin').value = downMinutes;
+  await updateFormId('ExDnFt', Math.round(descentStats.totalGain));
+  document.getElementById('DnDay').value = descentStats.time.days;
+  document.getElementById('DnHr').value = descentStats.time.hours;
+  document.getElementById('DnMin').value = descentStats.time.minutes;
 
   showNotification('✓ Fields updated! Please review, modify and submit.');
 }
@@ -246,43 +243,43 @@ function getDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-function calculateTrackDistance(points) {
-  let distance = 0;
+function trackLengthMeters(points) {
+  let meters = 0;
   for (let i = 1; i < points.length; i++) {
     const lat1 = parseFloat(points[i-1].getAttribute('lat'));
     const lon1 = parseFloat(points[i-1].getAttribute('lon'));
     const lat2 = parseFloat(points[i].getAttribute('lat'));
     const lon2 = parseFloat(points[i].getAttribute('lon'));
-    distance += getDistance(lat1, lon1, lat2, lon2);
+    meters += getDistance(lat1, lon1, lat2, lon2);
   }
-  return distance;
+  return meters;
 }
 
-function calculateElevationGain(points) {
-  let gain = 0;
+function elevationGainFt(points) {
+  let gainMeters = 0;
   for (let i = 1; i < points.length; i++) {
     const elev1 = parseFloat(points[i-1].getElementsByTagName('ele')[0].textContent);
     const elev2 = parseFloat(points[i].getElementsByTagName('ele')[0].textContent);
     if (elev2 > elev1) {
-      gain += metersToFeet(elev2 - elev1);
+      gainMeters += elev2 - elev1;
     }
   }
-  return gain;
+  return metersToFeet(gainMeters);
 }
 
-function calculateElevationLoss(points) {
-  let loss = 0;
+function elevationLossFt(points) {
+  let metersLost = 0;
   for (let i = 1; i < points.length; i++) {
     const elev1 = parseFloat(points[i-1].getElementsByTagName('ele')[0].textContent);
     const elev2 = parseFloat(points[i].getElementsByTagName('ele')[0].textContent);
     if (elev2 < elev1) {
-      loss += metersToFeet(elev1 - elev2);
+      metersLost += elev1 - elev2;
     }
   }
-  return loss;
+  return metersToFeet(metersLost);
 }
 
-function calculateTime(points) {
+function calculateDuration(points) {
   const startTime = new Date(points[0].getElementsByTagName('time')[0].textContent);
   const endTime = new Date(points[points.length-1].getElementsByTagName('time')[0].textContent);
   const diffMinutes = (endTime - startTime) / (1000 * 60);
