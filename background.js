@@ -1,13 +1,3 @@
-// chrome.action.onClicked.addListener(async (tab) => {
-//   if (tab.url.includes('ascentedit.aspx')) {
-//     await chrome.scripting.executeScript({
-//       target: { tabId: tab.id },
-//       files: ['content.js']
-//     });
-//     chrome.tabs.sendMessage(tab.id, { action: "processAscent" });
-//   }
-// });
-
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   if (request.action === "getPeakCoordinates") {
     const peakTab = await chrome.tabs.create({
