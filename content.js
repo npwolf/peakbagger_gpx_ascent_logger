@@ -4,46 +4,75 @@ console.log('Content script loaded');
 // Remove the DOMContentLoaded listener and check immediately
 checkForStoredNotification();
 
-if (!window.GPXTrack) {
-  console.error('GPX utilities not loaded correctly');
-}
-
 let gpxData = null;
 let isGPXListenerAttached = false;
-let peakCoordinates = null;
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Message received:', request);
-  if (request.action === "processAscent") {
-    handleAscentForm();
-  } else if (request.action === "processGPXContent") {
+  if (request.action === "processGPXContent") {
     const parser = new DOMParser();
     const gpxDoc = parser.parseFromString(request.gpxContent, "text/xml");
     processGPXData(gpxDoc);
-  } else if (request.action === "receivePeakCoordinates") {
-    peakCoordinates = request.coordinates;
-    console.log('Received peak coordinates:', peakCoordinates);
   }
 });
 
-async function handleAscentForm() {
-  console.log('Handling ascent form');
-  const peakListBox = document.getElementById('PeakListBox');
-
+async function getPeakCoordinates() {
   const peakElevationFt = parseInt(document.getElementById('PointFt').value, 10);
   if (isNaN(peakElevationFt) || peakElevationFt <= 0) {
     alert('Please select a peak from the list first');
     return;
   }
 
-  chrome.runtime.sendMessage({
-    action: "getPeakCoordinates",
-    peakId: peakListBox.value
-  });
+  let peakId = getPeakId();
+  if (isNaN(peakId) || peakId <= 0) {
+    alert('Unable to determine peak ID');
+    return;
+  }
+
+  try {
+    const response = await Promise.race([
+      new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(
+          { action: "getPeakCoordinates", peakId },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+            } else if (response.error) {
+              reject(new Error(response.error));
+            } else {
+              resolve(response.coordinates);
+            }
+          }
+        );
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), 10000))
+    ]);
+
+    console.log("Coordinates received:", response);
+    return response;
+  } catch (error) {
+    console.error("Error:", error.message);
+    return null;
+  }
 }
 
-function processGPXData(gpxDoc) {
+function getPeakId() {
+  let peakId;
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('pid')) {
+    peakId = parseInt(urlParams.get('pid'), 10);
+  } else {
+    const peakListBox = document.getElementById('PeakListBox');
+    peakId = parseInt(peakListBox.value, 10);
+  }
+  console.log("Got peak ID:", peakId);
+  return peakId;
+}
+
+async function processGPXData(gpxDoc) {
   try {
+      let peakCoordinates = await getPeakCoordinates();
+      console.log("processGPXData: Peak coordinates:", peakCoordinates);
       const track = new GPXTrack(gpxDoc, peakCoordinates, parseInt(document.getElementById('PointFt').value));
       fillFormFields(track);
   } catch (error) {

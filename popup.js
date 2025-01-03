@@ -12,13 +12,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedMode = document.querySelector('input[name="mode"]:checked').value;
 
         if (selectedMode === 'autodetect') {
-            document.getElementById('autodetect-section').classList.remove('hidden');
             document.getElementById('peak-selection').classList.remove('hidden');
             // Trigger click on the hidden file input
             document.getElementById('gpx-files').click();
             autoDetectPeaks();
         } else {
-            document.getElementById('autodetect-section').classList.add('hidden');
             document.getElementById('peak-selection').classList.add('hidden');
             checkPeakbaggerPage();
         }
@@ -35,6 +33,7 @@ function showAutodetectSection() {
 }
 
 async function checkPeakbaggerPage() {
+    console.log('checkPeakbaggerPage');
     try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         const ascentEditUrl = `https://www.peakbagger.com/climber/ascentedit.aspx?cid=${userId}`;
@@ -72,7 +71,21 @@ async function checkPeakbaggerPage() {
         navigationMessage.classList.add('hidden');
         console.log('Peak selected with elevation:', elevation);
 
-        // Add file input listener and trigger click
+        // Check if content script is already loaded
+        const isLoaded = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => window.hasOwnProperty('contentScriptLoaded')
+        });
+
+        // Inject content script if not already loaded
+        if (!isLoaded[0].result) {
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ['content.js', 'gpx-utils.js']
+            });
+        }
+
+        // Now handle file selection
         const fileInput = document.getElementById('gpx-file-input');
         fileInput.onchange = async (event) => {
             const file = event.target.files[0];
@@ -80,18 +93,11 @@ async function checkPeakbaggerPage() {
 
             reader.onload = async (e) => {
                 const gpxContent = e.target.result;
-                // Inject content script if needed
-                if (!isLoaded[0].result) {
-                    await chrome.scripting.executeScript({
-                        target: { tabId: tab.id },
-                        files: ['content.js', 'gpx-utils.js']
-                    });
-                }
-                // Send GPX content to content script
                 await chrome.tabs.sendMessage(tab.id, {
                     action: "processGPXContent",
                     gpxContent: gpxContent
                 });
+                window.close()
             };
 
             reader.readAsText(file);
