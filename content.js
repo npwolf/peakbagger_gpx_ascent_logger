@@ -12,29 +12,17 @@ let gpxData = null;
 let isGPXListenerAttached = false;
 let peakCoordinates = null;
 
-function setupGPXListener() {
-  const gpxUpload = document.getElementById('GPXUpload');
-  if (gpxUpload && !isGPXListenerAttached) {
-      gpxUpload.addEventListener('change', handleGPXFile);
-      isGPXListenerAttached = true;
-  }
-}
-
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Message received:', request);
   if (request.action === "processAscent") {
     handleAscentForm();
+  } else if (request.action === "processGPXContent") {
+    const parser = new DOMParser();
+    const gpxDoc = parser.parseFromString(request.gpxContent, "text/xml");
+    processGPXData(gpxDoc);
   } else if (request.action === "receivePeakCoordinates") {
     peakCoordinates = request.coordinates;
     console.log('Received peak coordinates:', peakCoordinates);
-    if (peakCoordinates) {
-      const gpxUpload = document.getElementById('GPXUpload');
-      setupGPXListener();
-      gpxUpload.value = '';
-      gpxUpload.click();
-    } else {
-      alert('Could not find peak coordinates');
-    }
   }
 });
 
@@ -52,21 +40,6 @@ async function handleAscentForm() {
     action: "getPeakCoordinates",
     peakId: peakListBox.value
   });
-}
-
-function handleGPXFile(event) {
-  console.log('Handling GPX file:', event.target.files[0]);
-  const file = event.target.files[0];
-  const reader = new FileReader();
-
-  reader.onload = function(e) {
-    const gpxContent = e.target.result;
-    const parser = new DOMParser();
-    const gpxDoc = parser.parseFromString(gpxContent, "text/xml");
-    processGPXData(gpxDoc);
-  };
-
-  reader.readAsText(file);
 }
 
 function processGPXData(gpxDoc) {

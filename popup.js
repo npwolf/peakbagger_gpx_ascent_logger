@@ -16,18 +16,13 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('peak-selection').classList.remove('hidden');
             // Trigger click on the hidden file input
             document.getElementById('gpx-files').click();
+            autoDetectPeaks();
         } else {
             document.getElementById('autodetect-section').classList.add('hidden');
             document.getElementById('peak-selection').classList.add('hidden');
-            // Implement manual peak selection logic here
-            // This should show the interface for manually selecting peaks
             checkPeakbaggerPage();
         }
     });
-
-    document.getElementById('gpx-files').addEventListener('change', handleFileSelect);
-    document.getElementById('process-files').addEventListener('click', processFiles);
-    document.getElementById('submit-ascents').addEventListener('click', submitAscents);
 });
 
 let gpxFiles = [];
@@ -76,24 +71,33 @@ async function checkPeakbaggerPage() {
 
         navigationMessage.classList.add('hidden');
         console.log('Peak selected with elevation:', elevation);
-        // Check if content script is already loaded
-        const isLoaded = await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: () => window.hasOwnProperty('contentScriptLoaded')
-        });
 
-        if (!isLoaded[0].result) {
-            // Inject content script only if not already loaded
-            await chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                files: ['content.js', 'gpx-utils.js']
-            });
-        }
-        console.log('Sending processAscent message...');
-        const response = await chrome.tabs.sendMessage(tab.id, {
-            action: "processAscent"
-        }).catch(err => console.error('Message send error:', err));
-        console.log('Message sent, response:', response);
+        // Add file input listener and trigger click
+        const fileInput = document.getElementById('gpx-file-input');
+        fileInput.onchange = async (event) => {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async (e) => {
+                const gpxContent = e.target.result;
+                // Inject content script if needed
+                if (!isLoaded[0].result) {
+                    await chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        files: ['content.js', 'gpx-utils.js']
+                    });
+                }
+                // Send GPX content to content script
+                await chrome.tabs.sendMessage(tab.id, {
+                    action: "processGPXContent",
+                    gpxContent: gpxContent
+                });
+            };
+
+            reader.readAsText(file);
+        };
+
+        fileInput.click();
     } catch (error) {
         console.error('Error checking page:', error);
         const navigationMessage = document.getElementById('navigation-message');
@@ -102,40 +106,18 @@ async function checkPeakbaggerPage() {
     }
 }
 
-function handleFileSelect(event) {
-    gpxFiles = event.target.files;
-    const fileListDiv = document.getElementById('file-list');
-    fileListDiv.innerHTML = ''; // Clear previous list
-    for (const file of gpxFiles) {
-        const fileDiv = document.createElement('div');
-        fileDiv.textContent = file.name;
-        fileListDiv.appendChild(fileDiv);
-    }
-}
-
-async function processFiles() {
-    if (gpxFiles.length === 0) {
-        alert("Please select GPX files.");
-        return;
-    }
-
-    document.getElementById('progress').classList.remove('hidden');
+function autoDetectPeaks() {
     document.getElementById('peak-selection').classList.add('hidden');
     const peakContainers = document.getElementById('peak-containers');
     peakContainers.innerHTML = '';
 
-    for(const file of gpxFiles){
-        // Here you would parse the GPX file (using a library like togeojson or similar)
-        // and then make requests to peakbagger.com to get peak information.
-        // This is a complex part and would require significant additional code.
-        // This example uses mock data.
-        const mockPeaks = [
-            { name: "Mock Peak 1", elevation: 1000, file: file.name },
-            { name: "Mock Peak 2", elevation: 1200, file: file.name },
-        ];
-        createPeakSection(mockPeaks, file.name);
-    }
-    document.getElementById('progress').classList.add('hidden');
+    // TODO
+    const mockPeaks = [
+        { name: "Mock Peak 1", elevation: 1000, file: file.name },
+        { name: "Mock Peak 2", elevation: 1200, file: file.name },
+    ];
+    createPeakSection(mockPeaks, file.name);
+
     document.getElementById('peak-selection').classList.remove('hidden');
 }
 
