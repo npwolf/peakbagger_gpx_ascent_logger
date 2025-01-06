@@ -79,7 +79,9 @@ async function processGPXData(gpxDoc) {
   try {
     // Create a file from the GPX document
     const serializer = new XMLSerializer();
-    const gpxString = await reducePointsInGPX(serializer.serializeToString(gpxDoc));
+    const gpxString = await reducePointsInGPX(
+      serializer.serializeToString(gpxDoc)
+    );
     console.log("Reduced GPX string:", gpxString);
     const blob = new Blob([gpxString], { type: "application/gpx+xml" });
     const file = new File([blob], "track.gpx", { type: "application/gpx+xml" });
@@ -121,7 +123,6 @@ async function reducePointsInGPX(gpxDoc) {
     return gpxDoc;
   }
 }
-
 
 async function fillFormFields(track) {
   console.log("Filling form fields");

@@ -10,9 +10,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const coordsMatch = text.match(/([\d.-]+),\s*([\d.-]+)\s*\(Dec Deg\)/);
         const coordinates = coordsMatch
           ? {
-            lat: parseFloat(coordsMatch[1]),
-            lng: parseFloat(coordsMatch[2]),
-          }
+              lat: parseFloat(coordsMatch[1]),
+              lng: parseFloat(coordsMatch[2]),
+            }
           : null;
 
         sendResponse({ coordinates });
