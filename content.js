@@ -1,14 +1,14 @@
+/* global GPXTrack */
+/* global GPXTrackReducer */
 window.contentScriptLoaded = true;
 console.log("Content script loaded");
 
 // Remove the DOMContentLoaded listener and check immediately
 checkForStoredNotification();
 
-const gpxData = null;
-const isGPXListenerAttached = false;
 const MAX_PEAKBAGGER_GPX_POINTS = 3000;
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
   console.log("Message received:", request);
   if (request.action === "processGPXContent") {
     const parser = new DOMParser();

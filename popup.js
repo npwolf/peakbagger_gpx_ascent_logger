@@ -28,8 +28,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-const gpxFiles = [];
-
 function showAutodetectSection() {
   document.getElementById("autodetect-section").classList.remove("hidden");
   document.getElementById("mode-selection").classList.add("hidden");
