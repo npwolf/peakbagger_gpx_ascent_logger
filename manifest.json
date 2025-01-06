@@ -3,12 +3,7 @@
   "name": "Peakbagger GPX Ascent Logger",
   "version": "1.0",
   "description": "Automatically fill Peakbagger ascent form using GPX data",
-  "permissions": [
-    "activeTab",
-    "tabs",
-    "scripting",
-    "storage"
-  ],
+  "permissions": ["activeTab", "tabs", "scripting", "storage"],
   "host_permissions": [
     "https://www.peakbagger.com/*",
     "https://peakbagger.com/*"
@@ -27,10 +22,7 @@
   "content_scripts": [
     {
       "matches": ["https://www.peakbagger.com/*", "https://peakbagger.com/*"],
-      "js": [
-        "gpx-utils.js",
-        "content.js"
-      ]
+      "js": ["gpx-utils.js", "content.js"]
     }
   ]
 }
