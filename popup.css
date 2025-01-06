@@ -1,13 +1,13 @@
 .error-message {
-    color: #721c24;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    border-radius: 4px;
-    padding: 10px;
-    margin: 10px 0;
+  color: #721c24;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  padding: 10px;
+  margin: 10px 0;
 }
 
 .error-message a {
-    color: #721c24;
-    text-decoration: underline;
+  color: #721c24;
+  text-decoration: underline;
 }
