@@ -3,6 +3,12 @@ console.log("GPX utils loaded");
 // Define a constant for the vertical noise threshold
 const ELEVATION_THRESHOLD_METERS = 10;
 
+/**
+ * Represents a GPX track and provides methods for analyzing hiking/climbing data.
+ * This class parses GPX track points, identifies the summit/peak point, and calculates
+ * various metrics for both ascent and descent segments of the track.
+ */
+/* eslint-disable-next-line no-unused-vars */
 class GPXTrack {
   constructor(gpxDoc, peakCoordinates, peakElevationFt) {
     this.peakCoordinates = peakCoordinates;
@@ -73,6 +79,11 @@ class GPXTrack {
   }
 }
 
+/**
+ * A class that reduces the number of track points in a GPX file while preserving the essential shape of the track.
+ * Uses the Ramer-Douglas-Peucker algorithm for line simplification.
+ */
+/* eslint-disable-next-line no-unused-vars */
 class GPXTrackReducer {
   constructor(gpxDoc) {
     this.gpxDoc = gpxDoc;
