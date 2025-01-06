@@ -28,12 +28,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-function showAutodetectSection() {
-  document.getElementById("autodetect-section").classList.remove("hidden");
-  document.getElementById("mode-selection").classList.add("hidden");
-  document.getElementById("navigation-message").classList.add("hidden");
-  document.getElementById("navigation-message").innerHTML = "";
-}
+// function showAutodetectSection() {
+//   document.getElementById("autodetect-section").classList.remove("hidden");
+//   document.getElementById("mode-selection").classList.add("hidden");
+//   document.getElementById("navigation-message").classList.add("hidden");
+//   document.getElementById("navigation-message").innerHTML = "";
+// }
 
 async function validatePeakbaggerPage(tab) {
   const ascentEditUrl = `https://www.peakbagger.com/climber/ascentedit.aspx?cid=${userId}`;
@@ -44,7 +44,8 @@ async function validatePeakbaggerPage(tab) {
       /^https:\/\/(www\.)?peakbagger\.com\/climber\/ascentedit\.aspx/
     )
   ) {
-    navigationMessage.innerHTML = "Please navigate to the <a href=\"#\" id=\"ascentedit-link\">Peakbagger ascent edit page</a> and select a peak first.";
+    navigationMessage.innerHTML =
+      "Please navigate to the <a href=\"#\" id=\"ascentedit-link\">Peakbagger ascent edit page</a> and select a peak first.";
     navigationMessage.classList.remove("hidden");
     document.getElementById("ascentedit-link").addEventListener("click", () => {
       chrome.tabs.create({ url: ascentEditUrl });
@@ -77,18 +78,19 @@ async function confirmPeakSelected(tab) {
 async function injectContentScripts(tab) {
   const isLoaded = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
-    func: () => window.hasOwnProperty("contentScriptLoaded"),
+    func: () =>
+      Object.prototype.hasOwnProperty.call(window, "contentScriptLoaded"),
   });
 
   if (!isLoaded[0].result) {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       files: ["gpx-utils.js"],
-     });
+    });
 
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ["content.js",],
+      files: ["content.js"],
     });
   }
 }
@@ -143,70 +145,88 @@ async function processManualPeakSelection() {
 }
 
 function autoDetectPeaks() {
-  document.getElementById("peak-selection").classList.add("hidden");
-  const peakContainers = document.getElementById("peak-containers");
-  peakContainers.innerHTML = "";
-
-  // TODO
-  const mockPeaks = [
-    { name: "Mock Peak 1", elevation: 1000, file: file.name },
-    { name: "Mock Peak 2", elevation: 1200, file: file.name },
-  ];
-  createPeakSection(mockPeaks, file.name);
-
-  document.getElementById("peak-selection").classList.remove("hidden");
+  //   document.getElementById("peak-selection").classList.add("hidden");
+  //   const peakContainers = document.getElementById("peak-containers");
+  //   peakContainers.innerHTML = "";
+  //   // TODO
+  //   const mockPeaks = [
+  //     { name: "Mock Peak 1", elevation: 1000, file: file.name },
+  //     { name: "Mock Peak 2", elevation: 1200, file: file.name },
+  //   ];
+  //   createPeakSection(mockPeaks, file.name);
+  //   document.getElementById("peak-selection").classList.remove("hidden");
 }
 
-function createPeakSection(peaks, filename) {
-  const peakContainers = document.getElementById("peak-containers");
-  const peakSection = document.createElement("div");
-  peakSection.className = "peak-section";
-  peakSection.innerHTML = `<h3>${filename}</h3><ul class="peak-list"></ul>`;
-  const peakList = peakSection.querySelector(".peak-list");
+// function createPeakSection(peaks, filename) {
+//   const peakContainers = document.getElementById("peak-containers");
+//   const peakSection = document.createElement("div");
+//   peakSection.className = "peak-section";
+//   peakSection.innerHTML = `<h3>${filename}</h3><ul class="peak-list"></ul>`;
+//   const peakList = peakSection.querySelector(".peak-list");
 
-  peaks.forEach((peak) => {
-    const li = document.createElement("li");
-    li.innerHTML = `<input type="checkbox" id="${peak.name}" data-filename="${filename}" data-name="${peak.name}" data-elevation="${peak.elevation}"><label for="${peak.name}">${peak.name} (${peak.elevation} ft)</label>`;
-    peakList.appendChild(li);
-  });
-  peakContainers.appendChild(peakSection);
-}
+//   peaks.forEach((peak) => {
+//     const li = document.createElement("li");
+//     li.innerHTML = `<input type="checkbox" id="${peak.name}" data-filename="${filename}" data-name="${peak.name}" data-elevation="${peak.elevation}"><label for="${peak.name}">${peak.name} (${peak.elevation} ft)</label>`;
+//     peakList.appendChild(li);
+//   });
+//   peakContainers.appendChild(peakSection);
+// }
 
-function submitAscents() {
-  const checkedPeaks = Array.from(
-    document.querySelectorAll("input[type=\"checkbox\"]:checked")
-  );
-  checkedPeaks.forEach((peak) => {
-    const filename = peak.dataset.filename;
-    const name = peak.dataset.name;
-    const elevation = peak.dataset.elevation;
-    // Construct the Peakbagger URL with parameters.
-    const url = "https://www.peakbagger.com/";
-    chrome.tabs.create({ url });
-    // You would also want to pass other data (date, route, etc.)
-  });
+function updateLoginSections(isLoggedIn) {
+  document.getElementById("loading-section").classList.add("hidden");
+  document
+    .getElementById("login-section")
+    .classList.toggle("hidden", isLoggedIn);
+  document
+    .getElementById("main-content")
+    .classList.toggle("hidden", !isLoggedIn);
 }
 
 async function checkLoginStatus() {
   try {
+    // First check current tab
+    const [currentTab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    if (
+      currentTab &&
+      currentTab.url.match(/^https?:\/\/(www\.)?peakbagger\.com/)
+    ) {
+      const cidMatch = currentTab.url.match(/[?&]cid=(\d+)/);
+      if (cidMatch && cidMatch[1]) {
+        userId = cidMatch[1];
+        updateLoginSections(true);
+        return;
+      }
+    }
+
+    // Then check all open tabs
+    const allTabs = await chrome.tabs.query({ url: "*://*.peakbagger.com/*" });
+    for (const tab of allTabs) {
+      const cidMatch = tab.url.match(/[?&]cid=(\d+)/);
+      if (cidMatch && cidMatch[1]) {
+        userId = cidMatch[1];
+        updateLoginSections(true);
+        return;
+      }
+    }
+
+    // Fall back to fetch method
     const response = await fetch("https://www.peakbagger.com/Default.aspx");
     const text = await response.text();
     const match = text.match(
       /href="climber\/climber\.aspx\?cid=(\d+)">My Home Page<\/a>/
     );
 
-    document.getElementById("loading-section").classList.add("hidden");
     if (match && match[1]) {
       userId = match[1];
-      document.getElementById("login-section").classList.add("hidden");
-      document.getElementById("main-content").classList.remove("hidden");
+      updateLoginSections(true);
     } else {
-      document.getElementById("login-section").classList.remove("hidden");
-      document.getElementById("main-content").classList.add("hidden");
+      updateLoginSections(false);
     }
   } catch (error) {
     console.error("Error checking login status:", error);
-    document.getElementById("login-section").classList.remove("hidden");
-    document.getElementById("main-content").classList.add("hidden");
+    updateLoginSections(false);
   }
 }
