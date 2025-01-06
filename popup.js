@@ -202,7 +202,9 @@ async function checkLoginStatus() {
     }
 
     // Then check all open tabs
-    const allTabs = await chrome.tabs.query({ url: "*://*.peakbagger.com/*" });
+    const allTabs = await chrome.tabs.query({
+      url: ["*://www.peakbagger.com/*", "*://peakbagger.com/*"],
+    });
     for (const tab of allTabs) {
       const cidMatch = tab.url.match(/[?&]cid=(\d+)/);
       if (cidMatch && cidMatch[1]) {
