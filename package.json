@@ -1,0 +1,56 @@
+{
+  "name": "add_ascent_to_peakbagger",
+  "version": "1.0.0",
+  "description": "Chrome extension to add ascent to Peakbagger",
+  "main": "popup.js",
+  "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.17.0",
+    "eslint": "^8.57.1",
+    "globals": "^15.14.0",
+    "husky": "^8.0.3",
+    "prettier": "^2.8.8"
+  },
+  "manifest_version": 2,
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs",
+    "https://www.peakbagger.com/*"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ],
+    "persistent": false
+  },
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.peakbagger.com/*"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ]
+}
