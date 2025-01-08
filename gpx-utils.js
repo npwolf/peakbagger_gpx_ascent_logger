@@ -4,15 +4,11 @@ console.log("GPX utils loaded");
 const ELEVATION_THRESHOLD_METERS = 10;
 
 /**
- * Represents a GPX track and provides methods for analyzing hiking/climbing data.
- * This class parses GPX track points, identifies the summit/peak point, and calculates
- * various metrics for both ascent and descent segments of the track.
+ * Base class for GPX track analysis with basic functionality.
  */
 /* eslint-disable-next-line no-unused-vars */
-class GPXTrack {
-  constructor(gpxDoc, peakCoordinates, peakElevationFt) {
-    this.peakCoordinates = peakCoordinates;
-    this.peakElevationFt = peakElevationFt;
+class GPXTrackSimple {
+  constructor(gpxDoc) {
     this.trackPoints = Array.from(gpxDoc.getElementsByTagName("trkpt"));
 
     if (!this.trackPoints.length) {
@@ -21,7 +17,6 @@ class GPXTrack {
 
     this.firstPoint = this.trackPoints[0];
     this.lastPoint = this.trackPoints[this.trackPoints.length - 1];
-    this.findClosestPointToPeak();
 
     // Calculate basic metrics
     this.date = this.firstPoint
@@ -29,10 +24,6 @@ class GPXTrack {
       .textContent.split("T")[0];
     this.startElevation = this.getElevationInFeet(this.firstPoint);
     this.endElevation = this.getElevationInFeet(this.lastPoint);
-
-    // Split track at peak
-    this.upTrack = this.trackPoints.slice(0, this.peakIndex + 1);
-    this.downTrack = this.trackPoints.slice(this.peakIndex);
   }
 
   findClosestPointToCoordinates(targetLat, targetLon) {
@@ -53,15 +44,6 @@ class GPXTrack {
     return { point: closestPoint, index: closestPointIndex };
   }
 
-  findClosestPointToPeak() {
-    const result = this.findClosestPointToCoordinates(
-      this.peakCoordinates.lat,
-      this.peakCoordinates.lng
-    );
-    this.closestPoint = result.point;
-    this.peakIndex = result.index;
-  }
-
   getElevationInFeet(point) {
     return metersToFeet(
       parseFloat(point.getElementsByTagName("ele")[0].textContent)
@@ -71,10 +53,42 @@ class GPXTrack {
   calculateSegmentMetrics(points) {
     const miles = (trackLengthMeters(points) / 1609.34).toFixed(2);
     const totalGain = elevationGainFt(points);
-    const netGain = this.peakElevationFt - this.startElevation;
+    const netGain = this.endElevation - this.startElevation;
     const loss = elevationLossFt(points);
     const time = calculateDuration(points);
     return { miles, netGain, totalGain, loss, time };
+  }
+}
+
+/**
+ * Extended class for GPX track analysis with peak-specific functionality.
+ */
+/* eslint-disable-next-line no-unused-vars */
+class GPXTrack extends GPXTrackSimple {
+  constructor(gpxDoc, peakCoordinates, peakElevationFt) {
+    super(gpxDoc);
+    this.peakCoordinates = peakCoordinates;
+    this.peakElevationFt = peakElevationFt;
+    this.findClosestPointToPeak();
+
+    // Split track at peak
+    this.upTrack = this.trackPoints.slice(0, this.peakIndex + 1);
+    this.downTrack = this.trackPoints.slice(this.peakIndex);
+  }
+
+  findClosestPointToPeak() {
+    const result = this.findClosestPointToCoordinates(
+      this.peakCoordinates.lat,
+      this.peakCoordinates.lng
+    );
+    this.closestPoint = result.point;
+    this.peakIndex = result.index;
+  }
+
+  calculateSegmentMetrics(points) {
+    const metrics = super.calculateSegmentMetrics(points);
+    metrics.netGain = this.peakElevationFt - this.startElevation;
+    return metrics;
   }
 
   get ascentStats() {
