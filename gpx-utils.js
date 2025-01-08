@@ -9,21 +9,26 @@ const ELEVATION_THRESHOLD_METERS = 10;
 /* eslint-disable-next-line no-unused-vars */
 class GPXTrackSimple {
   constructor(gpxDoc) {
-    this.trackPoints = Array.from(gpxDoc.getElementsByTagName("trkpt"));
+    const xmlTrackPoints = Array.from(gpxDoc.getElementsByTagName("trkpt"));
 
-    if (!this.trackPoints.length) {
+    if (!xmlTrackPoints.length) {
       throw new Error("No track points found in GPX file");
     }
+
+    this.trackPoints = Array.from(xmlTrackPoints).map((pt) => ({
+      lat: parseFloat(pt.getAttribute("lat")),
+      lon: parseFloat(pt.getAttribute("lon")),
+      elevation: parseFloat(pt.querySelector("ele")?.textContent),
+      datetime: pt.querySelector("time")?.textContent,
+    }));
 
     this.firstPoint = this.trackPoints[0];
     this.lastPoint = this.trackPoints[this.trackPoints.length - 1];
 
     // Calculate basic metrics
-    this.date = this.firstPoint
-      .getElementsByTagName("time")[0]
-      .textContent.split("T")[0];
-    this.startElevation = this.getElevationInFeet(this.firstPoint);
-    this.endElevation = this.getElevationInFeet(this.lastPoint);
+    this.startDate = this.firstPoint.datetime.split("T")[0];
+    this.startElevationFt = metersToFeet(this.firstPoint.elevation);
+    this.endElevationFt = metersToFeet(this.lastPoint.elevation);
   }
 
   findClosestPointToCoordinates(targetLat, targetLon) {
@@ -31,10 +36,7 @@ class GPXTrackSimple {
     let closestPoint = null;
     let closestPointIndex = null;
     this.trackPoints.forEach((point, index) => {
-      const lat = parseFloat(point.getAttribute("lat"));
-      const lon = parseFloat(point.getAttribute("lon"));
-      const distance = getDistance(lat, lon, targetLat, targetLon);
-
+      const distance = getDistance(point.lat, point.lon, targetLat, targetLon);
       if (distance < minDistance) {
         minDistance = distance;
         closestPoint = point;
@@ -44,19 +46,24 @@ class GPXTrackSimple {
     return { point: closestPoint, index: closestPointIndex };
   }
 
-  getElevationInFeet(point) {
-    return metersToFeet(
-      parseFloat(point.getElementsByTagName("ele")[0].textContent)
-    );
-  }
-
   calculateSegmentMetrics(points) {
     const miles = (trackLengthMeters(points) / 1609.34).toFixed(2);
-    const totalGain = elevationGainFt(points);
-    const netGain = this.endElevation - this.startElevation;
+    const gainFt = elevationGainFt(points);
     const loss = elevationLossFt(points);
-    const time = calculateDuration(points);
-    return { miles, netGain, totalGain, loss, time };
+    const duration = this.calculateDuration(points);
+    return { miles, gainFt, loss, duration };
+  }
+
+  calculateDuration(points) {
+    const startTime = new Date(points[0].datetime);
+    const endTime = new Date(points[points.length - 1].datetime);
+    const diffMinutes = (endTime - startTime) / (1000 * 60);
+
+    const days = Math.floor(diffMinutes / (24 * 60));
+    const hours = Math.floor((diffMinutes % (24 * 60)) / 60);
+    const minutes = Math.floor(diffMinutes % 60);
+
+    return { days, hours, minutes };
   }
 }
 
@@ -87,7 +94,7 @@ class GPXTrack extends GPXTrackSimple {
 
   calculateSegmentMetrics(points) {
     const metrics = super.calculateSegmentMetrics(points);
-    metrics.netGain = this.peakElevationFt - this.startElevation;
+    metrics.netGain = this.peakElevationFt - this.startElevationFt;
     return metrics;
   }
 
@@ -227,10 +234,10 @@ function getDistance(lat1, lon1, lat2, lon2) {
 function trackLengthMeters(points) {
   let meters = 0;
   for (let i = 1; i < points.length; i++) {
-    const lat1 = parseFloat(points[i - 1].getAttribute("lat"));
-    const lon1 = parseFloat(points[i - 1].getAttribute("lon"));
-    const lat2 = parseFloat(points[i].getAttribute("lat"));
-    const lon2 = parseFloat(points[i].getAttribute("lon"));
+    const lat1 = parseFloat(points[i - 1].lat);
+    const lon1 = parseFloat(points[i - 1].lon);
+    const lat2 = parseFloat(points[i].lat);
+    const lon2 = parseFloat(points[i].lon);
     meters += getDistance(lat1, lon1, lat2, lon2);
   }
   return meters;
@@ -239,13 +246,9 @@ function trackLengthMeters(points) {
 function elevationGainFt(points) {
   // Calculate total elevation gain, ignoring changes below the threshold to reduce noise
   let gainMeters = 0;
-  let lastValidElevation = parseFloat(
-    points[0].getElementsByTagName("ele")[0].textContent
-  );
+  let lastValidElevation = points[0].elevation;
   for (let i = 1; i < points.length; i++) {
-    const elev = parseFloat(
-      points[i].getElementsByTagName("ele")[0].textContent
-    );
+    const elev = points[i].elevation;
     if (elev - lastValidElevation > ELEVATION_THRESHOLD_METERS) {
       gainMeters += elev - lastValidElevation;
       lastValidElevation = elev;
@@ -257,35 +260,15 @@ function elevationGainFt(points) {
 function elevationLossFt(points) {
   // Calculate total elevation loss, ignoring changes below the threshold to reduce noise
   let metersLost = 0;
-  let lastValidElevation = parseFloat(
-    points[0].getElementsByTagName("ele")[0].textContent
-  );
+  let lastValidElevation = points[0].elevation;
   for (let i = 1; i < points.length; i++) {
-    const elev = parseFloat(
-      points[i].getElementsByTagName("ele")[0].textContent
-    );
+    const elev = points[i].elevation;
     if (lastValidElevation - elev > ELEVATION_THRESHOLD_METERS) {
       metersLost += lastValidElevation - elev;
       lastValidElevation = elev;
     }
   }
   return metersToFeet(metersLost);
-}
-
-function calculateDuration(points) {
-  const startTime = new Date(
-    points[0].getElementsByTagName("time")[0].textContent
-  );
-  const endTime = new Date(
-    points[points.length - 1].getElementsByTagName("time")[0].textContent
-  );
-  const diffMinutes = (endTime - startTime) / (1000 * 60);
-
-  const days = Math.floor(diffMinutes / (24 * 60));
-  const hours = Math.floor((diffMinutes % (24 * 60)) / 60);
-  const minutes = Math.floor(diffMinutes % 60);
-
-  return { days, hours, minutes };
 }
 
 // async function getPeaksNear(lat, lon, userId) {
