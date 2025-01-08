@@ -131,39 +131,39 @@ async function fillFormFields(track) {
   console.log("Filling form fields");
 
   // Date
-  document.getElementById("DateText").value = track.date;
+  document.getElementById("DateText").value = track.startDate;
 
   // Ascent stats
   // Starting elevation
-  await updateFormId("StartFt", Math.round(track.startElevation));
+  await updateFormId("StartFt", Math.round(track.startElevationFt));
   const ascentStats = track.ascentStats;
   // Net gain
   await updateFormId("GainFt", Math.round(ascentStats.netGain));
   // PB is a little weird having a net gain and extra gain instead of one number for gain
-  const extraGain = ascentStats.totalGain - ascentStats.netGain;
+  const extraGain = ascentStats.gainFt - ascentStats.netGain;
   if (extraGain > 0) {
     await updateFormId("ExUpFt", Math.round(extraGain));
   }
   await updateFormId("UpMi", track.ascentStats.miles);
-  document.getElementById("UpDay").value = ascentStats.time.days;
-  document.getElementById("UpHr").value = ascentStats.time.hours;
-  document.getElementById("UpMin").value = ascentStats.time.minutes;
+  document.getElementById("UpDay").value = ascentStats.duration.days;
+  document.getElementById("UpHr").value = ascentStats.duration.hours;
+  document.getElementById("UpMin").value = ascentStats.duration.minutes;
 
   // Descent Stats
   // Ending elevation and loss
-  await updateFormId("EndFt", Math.round(track.endElevation));
+  await updateFormId("EndFt", Math.round(track.endElevationFt));
   // Net loss (note this is different than calculated loss)
   await updateFormId(
     "LossFt",
-    Math.round(track.peakElevationFt - track.endElevation)
+    Math.round(track.peakElevationFt - track.endElevationFt)
   );
   const descentStats = track.descentStats;
   await updateFormId("DnMi", descentStats.miles);
   // Extra elevation gains/losses
-  await updateFormId("ExDnFt", Math.round(descentStats.totalGain));
-  document.getElementById("DnDay").value = descentStats.time.days;
-  document.getElementById("DnHr").value = descentStats.time.hours;
-  document.getElementById("DnMin").value = descentStats.time.minutes;
+  await updateFormId("ExDnFt", Math.round(descentStats.gainFt));
+  document.getElementById("DnDay").value = descentStats.duration.days;
+  document.getElementById("DnHr").value = descentStats.duration.hours;
+  document.getElementById("DnMin").value = descentStats.duration.minutes;
   await clickPreviewAndNotify();
 }
 
