@@ -35,24 +35,31 @@ class GPXTrack {
     this.downTrack = this.trackPoints.slice(this.peakIndex);
   }
 
-  findClosestPointToPeak() {
+  findClosestPointToCoordinates(targetLat, targetLon) {
     let minDistance = Infinity;
+    let closestPoint = null;
+    let closestPointIndex = null;
     this.trackPoints.forEach((point, index) => {
       const lat = parseFloat(point.getAttribute("lat"));
       const lon = parseFloat(point.getAttribute("lon"));
-      const distance = getDistance(
-        lat,
-        lon,
-        this.peakCoordinates.lat,
-        this.peakCoordinates.lng
-      );
+      const distance = getDistance(lat, lon, targetLat, targetLon);
 
       if (distance < minDistance) {
         minDistance = distance;
-        this.closestPoint = point;
-        this.peakIndex = index;
+        closestPoint = point;
+        closestPointIndex = index;
       }
     });
+    return { point: closestPoint, index: closestPointIndex };
+  }
+
+  findClosestPointToPeak() {
+    const result = this.findClosestPointToCoordinates(
+      this.peakCoordinates.lat,
+      this.peakCoordinates.lng
+    );
+    this.closestPoint = result.point;
+    this.peakIndex = result.index;
   }
 
   getElevationInFeet(point) {
@@ -188,7 +195,7 @@ function metersToFeet(meters) {
 }
 
 function getDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371e3; // metres
+  const R = 6371e3; // meters
   const φ1 = (lat1 * Math.PI) / 180; // φ, λ in radians
   const φ2 = (lat2 * Math.PI) / 180;
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
@@ -266,3 +273,31 @@ function calculateDuration(points) {
 
   return { days, hours, minutes };
 }
+
+// async function getPeaksNear(lat, lon, userId) {
+//   try {
+//       const url = `https://peakbagger.com/m/pt.ashx?pn=APIGetNearbyPeaks&p1=${lat}&p2=${lon}&p3=${userId}&p4=1&p5=0&p9=0&p10=0&p6=-32000&p11=32000&p7=0&p8=50&p12='en'&p13=0&p14=0&p15=''&p16=0&p17=0.0`;
+//       const response = await fetch(url);
+//       const text = await response.text();
+
+//       // Parse XML string
+//       const parser = new DOMParser();
+//       const xmlDoc = parser.parseFromString(text, "text/xml");
+
+//       // Convert XML to array of peak objects
+//       const peaks = Array.from(xmlDoc.getElementsByTagName('r')).map(peak => ({
+//           id: parseInt(peak.getAttribute('i')),
+//           name: peak.getAttribute('n'),
+//           elevation: parseInt(peak.getAttribute('f')),
+//           latitude: parseFloat(peak.getAttribute('a')),
+//           longitude: parseFloat(peak.getAttribute('o')),
+//           prominence: parseInt(peak.getAttribute('t')),
+//           isolation: parseInt(peak.getAttribute('r')),
+//           distance: parseFloat(peak.getAttribute('s')),
+//           location: peak.getAttribute('l'),
+//       }));
+//       return peaks;
+//   } catch (error) {
+//       alert(error)
+//   }
+// }
