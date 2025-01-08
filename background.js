@@ -15,6 +15,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
           : null;
 
+        console.log("Peak coordinates:", coordinates);
         sendResponse({ coordinates });
       } catch (error) {
         console.error("Error fetching peak coordinates:", error);

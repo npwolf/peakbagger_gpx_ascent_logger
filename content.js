@@ -93,6 +93,9 @@ async function processGPXData(gpxDoc) {
     fileInput.files = dataTransfer.files;
 
     const peakCoordinates = await getPeakCoordinates();
+    if (!peakCoordinates) {
+      throw new Error("Unable to get peak coordinates");
+    }
     console.log("processGPXData: Peak coordinates:", peakCoordinates);
     const track = new GPXTrack(
       gpxDoc,
