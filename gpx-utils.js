@@ -7,63 +7,68 @@ const ELEVATION_THRESHOLD_METERS = 10;
  * Base class for GPX track analysis with basic functionality.
  */
 /* eslint-disable-next-line no-unused-vars */
-class GPXTrackSimple {
-  constructor(gpxDoc) {
-    const xmlTrackPoints = Array.from(gpxDoc.getElementsByTagName("trkpt"));
+class SimpleTrackGpx {
+  #miles = null;
+  #gainFt = null;
+  #lossFt = null;
+  #duration = null;
 
-    if (!xmlTrackPoints.length) {
-      throw new Error("No track points found in GPX file");
-    }
-
-    this.trackPoints = Array.from(xmlTrackPoints).map((pt) => ({
-      lat: parseFloat(pt.getAttribute("lat")),
-      lon: parseFloat(pt.getAttribute("lon")),
-      elevation: parseFloat(pt.querySelector("ele")?.textContent),
-      datetime: pt.querySelector("time")?.textContent,
-    }));
-
+  constructor(points) {
+    this.trackPoints = points;
     this.firstPoint = this.trackPoints[0];
     this.lastPoint = this.trackPoints[this.trackPoints.length - 1];
-
     // Calculate basic metrics
     this.startDate = this.firstPoint.datetime.split("T")[0];
     this.startElevationFt = metersToFeet(this.firstPoint.elevation);
     this.endElevationFt = metersToFeet(this.lastPoint.elevation);
   }
 
-  findClosestPointToCoordinates(targetLat, targetLon) {
-    let minDistance = Infinity;
-    let closestPoint = null;
-    let closestPointIndex = null;
-    this.trackPoints.forEach((point, index) => {
-      const distance = getDistance(point.lat, point.lon, targetLat, targetLon);
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestPoint = point;
-        closestPointIndex = index;
-      }
-    });
-    return { point: closestPoint, index: closestPointIndex };
+  static fromGpxDoc(gpxDoc) {
+    const xmlTrackPoints = Array.from(gpxDoc.getElementsByTagName("trkpt"));
+    if (!xmlTrackPoints.length) {
+      throw new Error("No track points found in GPX file");
+    }
+    const points = Array.from(xmlTrackPoints).map((pt) => ({
+      lat: parseFloat(pt.getAttribute("lat")),
+      lon: parseFloat(pt.getAttribute("lon")),
+      elevation: parseFloat(pt.querySelector("ele")?.textContent),
+      datetime: pt.querySelector("time")?.textContent,
+    }));
+    return new SimpleTrackGpx(points);
   }
 
-  calculateSegmentMetrics(points) {
-    const miles = (trackLengthMeters(points) / 1609.34).toFixed(2);
-    const gainFt = elevationGainFt(points);
-    const loss = elevationLossFt(points);
-    const duration = this.calculateDuration(points);
-    return { miles, gainFt, loss, duration };
+  get miles() {
+    if (this.#miles === null) {
+      this.#miles = (trackLengthMeters(this.trackPoints) / 1609.34).toFixed(2);
+    }
+    return this.#miles;
   }
 
-  calculateDuration(points) {
-    const startTime = new Date(points[0].datetime);
-    const endTime = new Date(points[points.length - 1].datetime);
-    const diffMinutes = (endTime - startTime) / (1000 * 60);
+  get gainFt() {
+    if (this.#gainFt === null) {
+      this.#gainFt = elevationGainFt(this.trackPoints);
+    }
+    return this.#gainFt;
+  }
 
-    const days = Math.floor(diffMinutes / (24 * 60));
-    const hours = Math.floor((diffMinutes % (24 * 60)) / 60);
-    const minutes = Math.floor(diffMinutes % 60);
+  get lossFt() {
+    if (this.#lossFt === null) {
+      this.#lossFt = elevationLossFt(this.trackPoints);
+    }
+    return this.#lossFt;
+  }
 
-    return { days, hours, minutes };
+  get duration() {
+    if (this.#duration === null) {
+      const startTime = new Date(this.firstPoint.datetime);
+      const endTime = new Date(this.lastPoint.datetime);
+      const diffMinutes = (endTime - startTime) / (1000 * 60);
+      const days = Math.floor(diffMinutes / (24 * 60));
+      const hours = Math.floor((diffMinutes % (24 * 60)) / 60);
+      const minutes = Math.floor(diffMinutes % 60);
+      this.#duration = { days, hours, minutes };
+    }
+    return this.#duration;
   }
 }
 
@@ -71,7 +76,7 @@ class GPXTrackSimple {
  * Extended class for GPX track analysis with peak-specific functionality.
  */
 /* eslint-disable-next-line no-unused-vars */
-class GPXTrack extends GPXTrackSimple {
+class GPXTrack extends SimpleTrackGpx {
   constructor(gpxDoc, peakCoordinates, peakElevationFt) {
     super(gpxDoc);
     this.peakCoordinates = peakCoordinates;
@@ -90,6 +95,21 @@ class GPXTrack extends GPXTrackSimple {
     );
     this.closestPoint = result.point;
     this.peakIndex = result.index;
+  }
+
+  findClosestPointToCoordinates(targetLat, targetLon) {
+    let minDistance = Infinity;
+    let closestPoint = null;
+    let closestPointIndex = null;
+    this.trackPoints.forEach((point, index) => {
+      const distance = getDistance(point.lat, point.lon, targetLat, targetLon);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestPoint = point;
+        closestPointIndex = index;
+      }
+    });
+    return { point: closestPoint, index: closestPointIndex };
   }
 
   calculateSegmentMetrics(points) {
@@ -112,7 +132,7 @@ class GPXTrack extends GPXTrackSimple {
  * Uses the Ramer-Douglas-Peucker algorithm for line simplification.
  */
 /* eslint-disable-next-line no-unused-vars */
-class GPXTrackReducer {
+class ReducedTrackGpx {
   constructor(gpxDoc) {
     this.gpxDoc = gpxDoc;
     this.parser = new DOMParser();
