@@ -7,8 +7,9 @@ const ELEVATION_THRESHOLD_METERS = 10;
  * Base class for GPX track analysis with basic functionality.
  */
 /* eslint-disable-next-line no-unused-vars */
-class SimpleTrackGpx {
+class GPXTrack {
   #miles = null;
+  #netGainFt = null;
   #gainFt = null;
   #lossFt = null;
   #duration = null;
@@ -34,7 +35,7 @@ class SimpleTrackGpx {
       elevation: parseFloat(pt.querySelector("ele")?.textContent),
       datetime: pt.querySelector("time")?.textContent,
     }));
-    return new SimpleTrackGpx(points);
+    return new GPXTrack(points);
   }
 
   get miles() {
@@ -44,16 +45,53 @@ class SimpleTrackGpx {
     return this.#miles;
   }
 
+  get netGainFt() {
+    if (this.#netGainFt === null) {
+      let highestElevation = this.trackPoints[0].elevation;
+      let lowestElevation = this.trackPoints[0].elevation;
+      for (let i = 1; i < this.trackPoints.length; i++) {
+        const elev = this.trackPoints[i].elevation;
+        if (elev > highestElevation) {
+          highestElevation = elev;
+        } else if (elev < lowestElevation) {
+          lowestElevation = elev;
+        }
+      }
+      this.#netGainFt = highestElevation - lowestElevation;
+    }
+    return this.#netGainFt;
+  }
+
   get gainFt() {
     if (this.#gainFt === null) {
-      this.#gainFt = elevationGainFt(this.trackPoints);
+      // Calculate total elevation gain, ignoring changes below the threshold to reduce noise
+      let gainMeters = 0;
+      let lastValidElevation = this.trackPoints[0].elevation;
+      for (let i = 1; i < this.trackPoints.length; i++) {
+        const elev = this.trackPoints[i].elevation;
+        if (elev - lastValidElevation > ELEVATION_THRESHOLD_METERS) {
+          gainMeters += elev - lastValidElevation;
+          lastValidElevation = elev;
+        }
+      }
+      this.#gainFt = metersToFeet(gainMeters);
     }
     return this.#gainFt;
   }
 
   get lossFt() {
     if (this.#lossFt === null) {
-      this.#lossFt = elevationLossFt(this.trackPoints);
+      // Calculate total elevation loss, ignoring changes below the threshold to reduce noise
+      let metersLost = 0;
+      let lastValidElevation = this.trackPoints[0].elevation;
+      for (let i = 1; i < this.trackPoints.length; i++) {
+        const elev = this.trackPoints[i].elevation;
+        if (lastValidElevation - elev > ELEVATION_THRESHOLD_METERS) {
+          metersLost += lastValidElevation - elev;
+          lastValidElevation = elev;
+        }
+      }
+      this.#lossFt = metersToFeet(metersLost);
     }
     return this.#lossFt;
   }
@@ -76,16 +114,15 @@ class SimpleTrackGpx {
  * Extended class for GPX track analysis with peak-specific functionality.
  */
 /* eslint-disable-next-line no-unused-vars */
-class GPXTrack extends SimpleTrackGpx {
-  constructor(gpxDoc, peakCoordinates, peakElevationFt) {
-    super(gpxDoc);
+class GPXPeakTrack extends GPXTrack {
+  constructor(points, peakCoordinates) {
+    super(points);
     this.peakCoordinates = peakCoordinates;
-    this.peakElevationFt = peakElevationFt;
     this.findClosestPointToPeak();
 
     // Split track at peak
-    this.upTrack = this.trackPoints.slice(0, this.peakIndex + 1);
-    this.downTrack = this.trackPoints.slice(this.peakIndex);
+    this.upTrack = new GPXTrack(this.trackPoints.slice(0, this.peakIndex));
+    this.downTrack = new GPXTrack(this.trackPoints.slice(this.peakIndex));
   }
 
   findClosestPointToPeak() {
@@ -110,20 +147,6 @@ class GPXTrack extends SimpleTrackGpx {
       }
     });
     return { point: closestPoint, index: closestPointIndex };
-  }
-
-  calculateSegmentMetrics(points) {
-    const metrics = super.calculateSegmentMetrics(points);
-    metrics.netGain = this.peakElevationFt - this.startElevationFt;
-    return metrics;
-  }
-
-  get ascentStats() {
-    return this.calculateSegmentMetrics(this.upTrack);
-  }
-
-  get descentStats() {
-    return this.calculateSegmentMetrics(this.downTrack);
   }
 }
 
@@ -261,34 +284,6 @@ function trackLengthMeters(points) {
     meters += getDistance(lat1, lon1, lat2, lon2);
   }
   return meters;
-}
-
-function elevationGainFt(points) {
-  // Calculate total elevation gain, ignoring changes below the threshold to reduce noise
-  let gainMeters = 0;
-  let lastValidElevation = points[0].elevation;
-  for (let i = 1; i < points.length; i++) {
-    const elev = points[i].elevation;
-    if (elev - lastValidElevation > ELEVATION_THRESHOLD_METERS) {
-      gainMeters += elev - lastValidElevation;
-      lastValidElevation = elev;
-    }
-  }
-  return metersToFeet(gainMeters);
-}
-
-function elevationLossFt(points) {
-  // Calculate total elevation loss, ignoring changes below the threshold to reduce noise
-  let metersLost = 0;
-  let lastValidElevation = points[0].elevation;
-  for (let i = 1; i < points.length; i++) {
-    const elev = points[i].elevation;
-    if (lastValidElevation - elev > ELEVATION_THRESHOLD_METERS) {
-      metersLost += lastValidElevation - elev;
-      lastValidElevation = elev;
-    }
-  }
-  return metersToFeet(metersLost);
 }
 
 // async function getPeaksNear(lat, lon, userId) {
