@@ -155,27 +155,22 @@ class GPXPeakTrack extends GPXTrack {
  * Uses the Ramer-Douglas-Peucker algorithm for line simplification.
  */
 /* eslint-disable-next-line no-unused-vars */
-class ReducedTrackGpx {
-  constructor(gpxDoc) {
-    this.gpxDoc = gpxDoc;
+class GPXTrackReducer {
+  constructor(gpxDocStr) {
+    this.gpxDocStr = gpxDocStr;
     this.parser = new DOMParser();
-    this.xmlDoc = this.parser.parseFromString(gpxDoc, "text/xml");
-    this.trackPoints = this.xmlDoc.querySelectorAll("trkpt");
+    this.xmlDoc = this.parser.parseFromString(gpxDocStr, "text/xml");
+    this.gpxTrack = new GPXTrack().fromGpxDoc(this.xmlDoc);
   }
 
   origTrackPointCount() {
-    return this.trackPoints.length;
+    return this.gpxTrack.trackPoints.length;
   }
 
-  reduceGPX(targetPoints) {
-    if (this.trackPoints.length <= targetPoints) return this.gpxDoc;
+  getReducedGpxDocStr(targetPoints) {
+    if (this.gpxTrack.trackPoints.length <= targetPoints) return this.gpxDocStr;
 
-    let points = Array.from(this.trackPoints).map((pt) => ({
-      lat: parseFloat(pt.getAttribute("lat")),
-      lon: parseFloat(pt.getAttribute("lon")),
-      ele: parseFloat(pt.querySelector("ele")?.textContent),
-      time: pt.querySelector("time")?.textContent,
-    }));
+    let points = this.gpxTrack.trackPoints;
 
     // More efficient Ramer-Douglas-Peucker algorithm
     points = this.rdp(points, 0.00001); // Epsilon value, adjust as needed
