@@ -24,17 +24,29 @@ class GPXTrack {
     this.endElevationFt = metersToFeet(this.lastPoint.elevation);
   }
 
-  static fromGpxDoc(gpxDoc) {
-    const xmlTrackPoints = Array.from(gpxDoc.getElementsByTagName("trkpt"));
+  static fromGpxDoc(gpxDocXml) {
+    const xmlTrackPoints = Array.from(gpxDocXml.getElementsByTagName("trkpt"));
     if (!xmlTrackPoints.length) {
       throw new Error("No track points found in GPX file");
     }
-    const points = Array.from(xmlTrackPoints).map((pt) => ({
-      lat: parseFloat(pt.getAttribute("lat")),
-      lon: parseFloat(pt.getAttribute("lon")),
-      elevation: parseFloat(pt.querySelector("ele")?.textContent),
-      datetime: pt.querySelector("time")?.textContent,
-    }));
+    const points = Array.from(xmlTrackPoints).map((pt) => {
+      const elevation = pt.querySelector("ele")?.textContent;
+      const datetime = pt.querySelector("time")?.textContent;
+      if (!elevation)
+        throw new Error(
+          "Track point missing elevation data. Add elevation data to track with https://www.gpsvisualizer.com/elevation"
+        );
+      if (!datetime)
+        throw new Error(
+          "Track point missing timestamp data. Add timestamp data to track"
+        );
+      return {
+        lat: parseFloat(pt.getAttribute("lat")),
+        lon: parseFloat(pt.getAttribute("lon")),
+        elevation: parseFloat(elevation),
+        datetime: datetime,
+      };
+    });
     return new GPXTrack(points);
   }
 
