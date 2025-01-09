@@ -159,8 +159,8 @@ class GPXTrackReducer {
   constructor(gpxDocStr) {
     this.gpxDocStr = gpxDocStr;
     this.parser = new DOMParser();
-    this.xmlDoc = this.parser.parseFromString(this.gpxDocStr, "text/xml");
-    this.gpxTrack = new GPXTrack().fromGpxDoc(this.xmlDoc);
+    this.gpxDocXml = this.parser.parseFromString(this.gpxDocStr, "text/xml");
+    this.gpxTrack = new GPXTrack().fromGpxDoc(this.gpxDocXml);
   }
 
   reduceGPXTrack(targetPointsLen) {
@@ -199,7 +199,7 @@ class GPXTrackReducer {
     newGPX += "</trkseg></trk></gpx>";
     this.gpxDocStr = newGPX;
     this.parser = new DOMParser();
-    this.xmlDoc = this.parser.parseFromString(this.gpxDocStr, "text/xml");
+    this.gpxDocXml = this.parser.parseFromString(this.gpxDocStr, "text/xml");
     this.gpxTrack = new GPXTrack().fromGpxDoc(this.xmlDoc);
   }
 
