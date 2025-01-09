@@ -185,22 +185,53 @@ class GPXTrackReducer {
   }
 
   update(newPoints) {
-    let newGPX = `<?xml version="1.0" encoding="UTF-8"?>
-    <gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="Add Ascent to Peakbagger Extension">
-    <trk><trkseg>`;
+    // Change the creator attribute since we're modifying the file
+    this.gpxDocXml.documentElement.setAttribute(
+      "creator",
+      "Add Ascent to Peakbagger Extension"
+    );
 
+    // Find or create trkseg
+    const oldTrksegs = this.gpxDocXml.getElementsByTagName("trkseg");
+    let trkseg;
+    if (oldTrksegs.length > 0) {
+      trkseg = oldTrksegs[0];
+      // Remove all existing trackpoints
+      while (trkseg.firstChild) {
+        trkseg.removeChild(trkseg.firstChild);
+      }
+    } else {
+      // Create new track structure if it doesn't exist
+      const trk = this.gpxDocXml.createElement("trk");
+      trkseg = this.gpxDocXml.createElement("trkseg");
+      trk.appendChild(trkseg);
+      this.gpxDocXml.documentElement.appendChild(trk);
+    }
+
+    // Add new track points
     newPoints.forEach((point) => {
-      newGPX += `<trkpt lat="${point.lat}" lon="${point.lon}">`;
-      if (point.ele) newGPX += `<ele>${point.ele}</ele>`;
-      if (point.time) newGPX += `<time>${point.time}</time>`;
-      newGPX += "</trkpt>";
+      const trkpt = this.gpxDocXml.createElement("trkpt");
+      trkpt.setAttribute("lat", point.lat.toString());
+      trkpt.setAttribute("lon", point.lon.toString());
+
+      if (point.elevation) {
+        const ele = this.gpxDocXml.createElement("ele");
+        ele.textContent = point.elevation.toString();
+        trkpt.appendChild(ele);
+      }
+
+      if (point.datetime) {
+        const time = this.gpxDocXml.createElement("time");
+        time.textContent = point.datetime;
+        trkpt.appendChild(time);
+      }
+
+      trkseg.appendChild(trkpt);
     });
 
-    newGPX += "</trkseg></trk></gpx>";
-    this.gpxDocStr = newGPX;
-    this.parser = new DOMParser();
-    this.gpxDocXml = this.parser.parseFromString(this.gpxDocStr, "text/xml");
-    this.gpxTrack = new GPXTrack().fromGpxDoc(this.xmlDoc);
+    this.gpxTrack = new GPXTrack().fromGpxDoc(this.gpxDocXml);
+    // Update the string representation
+    this.gpxDocStr = new XMLSerializer().serializeToString(this.gpxDocXml);
   }
 
   rdp(points, epsilon) {
@@ -262,7 +293,7 @@ function getDistance(lat1, lon1, lat2, lon2) {
   const φ1 = (lat1 * Math.PI) / 180; // φ, λ in radians
   const φ2 = (lat2 * Math.PI) / 180;
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  const Δλ = ((lon1 - lon2) * Math.PI) / 180;
 
   const a =
     Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
