@@ -1,5 +1,5 @@
-/* global GPXTrack */
 /* global GPXTrackReducer */
+/* global GPXPeakTrack */
 window.contentScriptLoaded = true;
 console.log("Content script loaded");
 
@@ -12,8 +12,8 @@ chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
   console.log("Message received:", request);
   if (request.action === "processGPXContent") {
     const parser = new DOMParser();
-    const gpxDoc = parser.parseFromString(request.gpxContent, "text/xml");
-    processGPXData(gpxDoc);
+    const gpxDocXml = parser.parseFromString(request.gpxContent, "text/xml");
+    processGPXData(gpxDocXml);
   }
 });
 
@@ -57,8 +57,7 @@ async function getPeakCoordinates() {
     console.log("Coordinates received:", response);
     return response;
   } catch (error) {
-    console.error("Error:", error.message);
-    return null;
+    throw new Error("Unable to get peak coordinates: ", error);
   }
 }
 
@@ -75,34 +74,21 @@ function getPeakId() {
   return peakId;
 }
 
-async function processGPXData(gpxDoc) {
+async function processGPXData(gpxDocXml) {
   try {
     // Create a file from the GPX document
-    const serializer = new XMLSerializer();
-    const gpxString = await reducePointsInGPX(
-      serializer.serializeToString(gpxDoc)
-    );
-    console.log("Reduced GPX string:", gpxString);
-    const blob = new Blob([gpxString], { type: "application/gpx+xml" });
-    const file = new File([blob], "track.gpx", { type: "application/gpx+xml" });
-
-    // Set the file to the input element
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
-    const fileInput = document.getElementById("GPXUpload");
-    fileInput.files = dataTransfer.files;
+    const gpxTrackReducer = new GPXTrackReducer(gpxDocXml);
+    gpxTrackReducer.reduceGPXTrack(MAX_PEAKBAGGER_GPX_POINTS);
+    gpxDocXml = gpxTrackReducer.gpxDocXml;
 
     const peakCoordinates = await getPeakCoordinates();
-    if (!peakCoordinates) {
-      throw new Error("Unable to get peak coordinates");
-    }
     console.log("processGPXData: Peak coordinates:", peakCoordinates);
-    const track = new GPXTrack(
-      gpxDoc,
-      peakCoordinates,
-      parseInt(document.getElementById("PointFt").value)
+    const track = new GPXPeakTrack(
+      gpxTrackReducer.gpxTrack.trackPoints,
+      peakCoordinates
     );
-    fillFormFields(track);
+    await fillFormFields(track);
+    await uploadTrack(gpxDocXml);
   } catch (error) {
     console.error("Error processing GPX:", error, error.stack);
     alert(error.message);
@@ -110,21 +96,18 @@ async function processGPXData(gpxDoc) {
   }
 }
 
-async function reducePointsInGPX(gpxDoc) {
-  const gpxTrackReduced = new GPXTrackReducer(gpxDoc);
-  const origTrackPointCount = gpxTrackReduced.origTrackPointCount();
-  console.log("Original GPX track points:", origTrackPointCount);
-  if (origTrackPointCount > MAX_PEAKBAGGER_GPX_POINTS) {
-    console.log(
-      "Reducing GPX track points from ",
-      gpxTrackReduced.origTrackPointCount(),
-      " to ",
-      MAX_PEAKBAGGER_GPX_POINTS
-    );
-    return gpxTrackReduced.reduceGPX(MAX_PEAKBAGGER_GPX_POINTS);
-  } else {
-    return gpxDoc;
-  }
+async function uploadTrack(gpxDocXml) {
+  const serializer = new XMLSerializer();
+  const gpxString = serializer.serializeToString(gpxDocXml);
+  const blob = new Blob([gpxString], { type: "application/gpx+xml" });
+  const file = new File([blob], "track.gpx", { type: "application/gpx+xml" });
+
+  // Set the file to the input element
+  const dataTransfer = new DataTransfer();
+  dataTransfer.items.add(file);
+  const fileInput = document.getElementById("GPXUpload");
+  fileInput.files = dataTransfer.files;
+  await clickPreviewAndNotify();
 }
 
 async function fillFormFields(track) {
@@ -136,35 +119,31 @@ async function fillFormFields(track) {
   // Ascent stats
   // Starting elevation
   await updateFormId("StartFt", Math.round(track.startElevationFt));
-  const ascentStats = track.ascentStats;
+
   // Net gain
-  await updateFormId("GainFt", Math.round(ascentStats.netGain));
+  await updateFormId("GainFt", Math.round(track.toPeakTrack.netGainFt));
   // PB is a little weird having a net gain and extra gain instead of one number for gain
-  const extraGain = ascentStats.gainFt - ascentStats.netGain;
+  const extraGain = track.toPeakTrack.gainFt - track.toPeakTrack.netGain;
   if (extraGain > 0) {
     await updateFormId("ExUpFt", Math.round(extraGain));
   }
-  await updateFormId("UpMi", track.ascentStats.miles);
-  document.getElementById("UpDay").value = ascentStats.duration.days;
-  document.getElementById("UpHr").value = ascentStats.duration.hours;
-  document.getElementById("UpMin").value = ascentStats.duration.minutes;
+  await updateFormId("UpMi", track.toPeakTrack.miles);
+  document.getElementById("UpDay").value = track.toPeakTrack.duration.days;
+  document.getElementById("UpHr").value = track.toPeakTrack.duration.hours;
+  document.getElementById("UpMin").value = track.toPeakTrack.duration.minutes;
 
   // Descent Stats
   // Ending elevation and loss
   await updateFormId("EndFt", Math.round(track.endElevationFt));
   // Net loss (note this is different than calculated loss)
-  await updateFormId(
-    "LossFt",
-    Math.round(track.peakElevationFt - track.endElevationFt)
-  );
-  const descentStats = track.descentStats;
-  await updateFormId("DnMi", descentStats.miles);
+  await updateFormId("LossFt", track.fromPeakTrack.lossFt);
+
+  await updateFormId("DnMi", track.fromPeakTrack.miles);
   // Extra elevation gains/losses
-  await updateFormId("ExDnFt", Math.round(descentStats.gainFt));
-  document.getElementById("DnDay").value = descentStats.duration.days;
-  document.getElementById("DnHr").value = descentStats.duration.hours;
-  document.getElementById("DnMin").value = descentStats.duration.minutes;
-  await clickPreviewAndNotify();
+  await updateFormId("ExDnFt", Math.round(track.fromPeakTrack.gainFt));
+  document.getElementById("DnDay").value = track.fromPeakTrack.duration.days;
+  document.getElementById("DnHr").value = track.fromPeakTrack.duration.hours;
+  document.getElementById("DnMin").value = track.fromPeakTrack.duration.minutes;
 }
 
 // Click preview and wait for page to reload before displaying notification

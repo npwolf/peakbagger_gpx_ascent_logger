@@ -133,8 +133,8 @@ class GPXPeakTrack extends GPXTrack {
     this.findClosestPointToPeak();
 
     // Split track at peak
-    this.upTrack = new GPXTrack(this.trackPoints.slice(0, this.peakIndex));
-    this.downTrack = new GPXTrack(this.trackPoints.slice(this.peakIndex));
+    this.toPeakTrack = new GPXTrack(this.trackPoints.slice(0, this.peakIndex));
+    this.fromPeakTrack = new GPXTrack(this.trackPoints.slice(this.peakIndex));
   }
 
   findClosestPointToPeak() {
@@ -168,23 +168,25 @@ class GPXPeakTrack extends GPXTrack {
  */
 /* eslint-disable-next-line no-unused-vars */
 class GPXTrackReducer {
-  constructor(gpxDocStr) {
-    this.gpxDocStr = gpxDocStr;
-    this.parser = new DOMParser();
-    this.gpxDocXml = this.parser.parseFromString(this.gpxDocStr, "text/xml");
+  constructor(gpxDocXml) {
+    this.gpxDocXml = gpxDocXml;
     this.gpxTrack = new GPXTrack().fromGpxDoc(this.gpxDocXml);
   }
 
   reduceGPXTrack(targetPointsLen) {
-    if (this.gpxTrack.trackPoints.length <= targetPointsLen)
-      return this.gpxDocStr;
-
-    let points = this.gpxTrack.trackPoints;
-
+    if (this.gpxTrack.trackPoints.length <= targetPointsLen) {
+      console.log(
+        `GPX track has ${this.gpxTrack.trackPoints.length} points, which is already less than the target of ${targetPointsLen}.`
+      );
+      return;
+    }
     // More efficient Ramer-Douglas-Peucker algorithm
-    points = this.rdp(points, 0.00001); // Epsilon value, adjust as needed
+    let points = this.rdp(this.gpxTrack.trackPoints, 0.00001); // Epsilon value, adjust as needed
 
     if (points.length > targetPointsLen) {
+      console.log(
+        `Still need to reduce more after rdp. Reducing GPX track from ${points.length} to ${targetPointsLen} points.`
+      );
       const reductionRatio = targetPointsLen / points.length;
       const newPoints = [];
       for (let i = 0; i < points.length; i += 1 / reductionRatio) {
@@ -192,7 +194,9 @@ class GPXTrackReducer {
       }
       points = newPoints;
     }
-
+    console.log(
+      `Reduced GPX track from ${this.gpxTrack.trackPoints.length} to ${points.length} points.`
+    );
     this.update(points);
   }
 
@@ -226,24 +230,18 @@ class GPXTrackReducer {
       trkpt.setAttribute("lat", point.lat.toString());
       trkpt.setAttribute("lon", point.lon.toString());
 
-      if (point.elevation) {
-        const ele = this.gpxDocXml.createElement("ele");
-        ele.textContent = point.elevation.toString();
-        trkpt.appendChild(ele);
-      }
+      const ele = this.gpxDocXml.createElement("ele");
+      ele.textContent = point.elevation.toString();
+      trkpt.appendChild(ele);
 
-      if (point.datetime) {
-        const time = this.gpxDocXml.createElement("time");
-        time.textContent = point.datetime;
-        trkpt.appendChild(time);
-      }
+      const time = this.gpxDocXml.createElement("time");
+      time.textContent = point.datetime;
+      trkpt.appendChild(time);
 
       trkseg.appendChild(trkpt);
     });
 
     this.gpxTrack = new GPXTrack().fromGpxDoc(this.gpxDocXml);
-    // Update the string representation
-    this.gpxDocStr = new XMLSerializer().serializeToString(this.gpxDocXml);
   }
 
   rdp(points, epsilon) {
