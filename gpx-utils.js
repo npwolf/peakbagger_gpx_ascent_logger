@@ -167,16 +167,17 @@ class GPXTrackReducer {
     return this.gpxTrack.trackPoints.length;
   }
 
-  getReducedGpxDocStr(targetPoints) {
-    if (this.gpxTrack.trackPoints.length <= targetPoints) return this.gpxDocStr;
+  getReducedGpxDocStr(targetPointsLen) {
+    if (this.gpxTrack.trackPoints.length <= targetPointsLen)
+      return this.gpxDocStr;
 
     let points = this.gpxTrack.trackPoints;
 
     // More efficient Ramer-Douglas-Peucker algorithm
     points = this.rdp(points, 0.00001); // Epsilon value, adjust as needed
 
-    if (points.length > targetPoints) {
-      const reductionRatio = targetPoints / points.length;
+    if (points.length > targetPointsLen) {
+      const reductionRatio = targetPointsLen / points.length;
       const newPoints = [];
       for (let i = 0; i < points.length; i += 1 / reductionRatio) {
         newPoints.push(points[Math.floor(i)]);
