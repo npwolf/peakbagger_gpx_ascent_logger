@@ -159,15 +159,11 @@ class GPXTrackReducer {
   constructor(gpxDocStr) {
     this.gpxDocStr = gpxDocStr;
     this.parser = new DOMParser();
-    this.xmlDoc = this.parser.parseFromString(gpxDocStr, "text/xml");
+    this.xmlDoc = this.parser.parseFromString(this.gpxDocStr, "text/xml");
     this.gpxTrack = new GPXTrack().fromGpxDoc(this.xmlDoc);
   }
 
-  origTrackPointCount() {
-    return this.gpxTrack.trackPoints.length;
-  }
-
-  getReducedGpxDocStr(targetPointsLen) {
+  reduceGPXTrack(targetPointsLen) {
     if (this.gpxTrack.trackPoints.length <= targetPointsLen)
       return this.gpxDocStr;
 
@@ -185,11 +181,15 @@ class GPXTrackReducer {
       points = newPoints;
     }
 
-    let newGPX = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="Add Ascent to Peakbagger Extension">
-<trk><trkseg>`;
+    this.update(points);
+  }
 
-    points.forEach((point) => {
+  update(newPoints) {
+    let newGPX = `<?xml version="1.0" encoding="UTF-8"?>
+    <gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="Add Ascent to Peakbagger Extension">
+    <trk><trkseg>`;
+
+    newPoints.forEach((point) => {
       newGPX += `<trkpt lat="${point.lat}" lon="${point.lon}">`;
       if (point.ele) newGPX += `<ele>${point.ele}</ele>`;
       if (point.time) newGPX += `<time>${point.time}</time>`;
@@ -197,7 +197,10 @@ class GPXTrackReducer {
     });
 
     newGPX += "</trkseg></trk></gpx>";
-    return newGPX;
+    this.gpxDocStr = newGPX;
+    this.parser = new DOMParser();
+    this.xmlDoc = this.parser.parseFromString(this.gpxDocStr, "text/xml");
+    this.gpxTrack = new GPXTrack().fromGpxDoc(this.xmlDoc);
   }
 
   rdp(points, epsilon) {
