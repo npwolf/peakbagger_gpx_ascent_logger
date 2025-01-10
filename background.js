@@ -49,6 +49,7 @@ async function handleNearbyPeaksFetch(lat, lon, userId) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const text = await response.text();
+    console.log("Nearby peaks text:", text);
     return { peaksText: text };
   } catch (error) {
     console.error(error);

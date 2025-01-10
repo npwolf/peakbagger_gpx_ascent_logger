@@ -1,4 +1,5 @@
 /* global GPXTrack */
+/* global GPXPeakTrack */
 let userId = null;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -169,7 +170,6 @@ async function autoDetectPeaks() {
 async function getNearbyPeaksFromGpxDocXml(gpxDocXml) {
   const gpxTrack = GPXTrack.fromGpxDocXml(gpxDocXml);
   const midPoint = gpxTrack.roughMidPoint;
-
   try {
     const response = await chrome.runtime.sendMessage({
       action: "getNearbyPeaks",
@@ -183,11 +183,33 @@ async function getNearbyPeaksFromGpxDocXml(gpxDocXml) {
       throw new Error("Failed to fetch nearby peaks");
     }
     const nearbyPeaks = await parseNearbyPeaksResponse(response.peaksText);
-    console.log("Nearby peaks:", nearbyPeaks);
-    // Handle the peaks data here
+    //const filteredPeaks = await removePeaksThatAreTooFar(gpxTrack, nearbyPeaks);
+    const filteredPeaks = nearbyPeaks;
+    await getPeaksToTracks(filteredPeaks, gpxTrack);
   } catch (error) {
     console.error("Error in message passing:", error);
   }
+}
+
+async function getPeaksToTracks(peaks, gpxTrack) {
+  const startTime = performance.now();
+  const peakMap = new Map();
+  for (const peak of peaks) {
+    const peakCoordinates = { lat: peak.lat, lon: peak.lon };
+    const gpxPeakTrack = new GPXPeakTrack(
+      gpxTrack.trackPoints,
+      peakCoordinates
+    );
+    if (gpxPeakTrack.closestDistanceFtToPeak < 500) {
+      console.log("Peak is on track:", peak.name);
+      peakMap.set(peak, gpxPeakTrack);
+    }
+  }
+  const endTime = performance.now();
+  console.log(
+    `getPeaksToTracks took ${((endTime - startTime) / 1000).toFixed(2)} seconds`
+  );
+  return peakMap;
 }
 
 async function parseNearbyPeaksResponse(text) {
@@ -195,15 +217,17 @@ async function parseNearbyPeaksResponse(text) {
   const xmlDoc = parser.parseFromString(text, "text/xml");
 
   // Convert XML to array of peak objects
+  // Example row:
+  // 	<r i="21582" n="Lone Mountain" f="3342" a="36.238156" o="-115.315186" t="410" r="542" s="2.24" l="USA-NV" lkvp="1*48349|2*154811|6*W7N/CK-227|9*841766"/>
   const peaks = Array.from(xmlDoc.getElementsByTagName("r")).map((peak) => ({
     id: parseInt(peak.getAttribute("i")),
     name: peak.getAttribute("n"),
-    elevation: parseInt(peak.getAttribute("f")),
-    latitude: parseFloat(peak.getAttribute("a")),
-    longitude: parseFloat(peak.getAttribute("o")),
-    prominence: parseInt(peak.getAttribute("t")),
-    isolation: parseInt(peak.getAttribute("r")),
-    distance: parseFloat(peak.getAttribute("s")),
+    elevationFt: parseInt(peak.getAttribute("f")),
+    lat: parseFloat(peak.getAttribute("a")),
+    lon: parseFloat(peak.getAttribute("o")),
+    //unknown: parseInt(peak.getAttribute("t")),
+    prominence: parseInt(peak.getAttribute("r")),
+    // unknown: parseFloat(peak.getAttribute("s")),
     location: peak.getAttribute("l"),
   }));
   return peaks;

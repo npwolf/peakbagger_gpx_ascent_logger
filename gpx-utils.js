@@ -29,6 +29,11 @@ class GPXTrack {
     return gpxTrack;
   }
 
+  getDistanceMetersFromRoughMidPoint(lat1, lon1) {
+    const { lat: lat2, lon: lon2 } = this.roughMidPoint;
+    return getDistanceMeters(lat1, lon1, lat2, lon2);
+  }
+
   get roughMidPoint() {
     if (this.trackPoints.length < 2) {
       return this.trackPoints[0];
@@ -120,15 +125,29 @@ class GPXTrack {
  */
 /* eslint-disable-next-line no-unused-vars */
 class GPXPeakTrack extends GPXTrack {
+  #closestDistanceFtToPeak = null;
+
   constructor(points, peakCoordinates) {
     super(points);
     this.peakCoordinates = peakCoordinates;
     this.findClosestPointToPeak();
-
-    console.log("Peak index:", this.peakIndex);
     // Split track at peak
     this.toPeakTrack = new GPXTrack(this.trackPoints.slice(0, this.peakIndex));
     this.fromPeakTrack = new GPXTrack(this.trackPoints.slice(this.peakIndex));
+  }
+
+  get closestDistanceFtToPeak() {
+    if (this.#closestDistanceFtToPeak == null) {
+      const closestPoint = this.trackPoints[this.peakIndex];
+      const distMeters = getDistanceMeters(
+        closestPoint.lat,
+        closestPoint.lon,
+        this.peakCoordinates.lat,
+        this.peakCoordinates.lon
+      );
+      return metersToFeet(distMeters);
+    }
+    return this.#closestDistanceFtToPeak;
   }
 
   findClosestPointToPeak() {
@@ -145,7 +164,12 @@ class GPXPeakTrack extends GPXTrack {
     let closestPoint = null;
     let closestPointIndex = null;
     this.trackPoints.forEach((point, index) => {
-      const distance = getDistance(point.lat, point.lon, targetLat, targetLon);
+      const distance = getDistanceMeters(
+        point.lat,
+        point.lon,
+        targetLat,
+        targetLon
+      );
       if (distance < minDistance) {
         minDistance = distance;
         closestPoint = point;
@@ -292,7 +316,12 @@ class GPXTrackReducer {
     const dy = lineEnd.lat - lineStart.lat;
 
     if (dx === 0 && dy === 0) {
-      return getDistance(point.lat, point.lon, lineStart.lat, lineStart.lon);
+      return getDistanceMeters(
+        point.lat,
+        point.lon,
+        lineStart.lat,
+        lineStart.lon
+      );
     }
 
     const t =
@@ -301,7 +330,7 @@ class GPXTrackReducer {
     const closestX = lineStart.lon + t * dx;
     const closestY = lineStart.lat + t * dy;
 
-    return getDistance(point.lat, point.lon, closestY, closestX);
+    return getDistanceMeters(point.lat, point.lon, closestY, closestX);
   }
 }
 
@@ -309,7 +338,7 @@ function metersToFeet(meters) {
   return meters * 3.28084;
 }
 
-function getDistance(lat1, lon1, lat2, lon2) {
+function getDistanceMeters(lat1, lon1, lat2, lon2) {
   const R = 6371e3; // meters
   const φ1 = (lat1 * Math.PI) / 180; // φ, λ in radians
   const φ2 = (lat2 * Math.PI) / 180;
@@ -332,7 +361,7 @@ function trackLengthMeters(points) {
     const lon1 = parseFloat(points[i - 1].lon);
     const lat2 = parseFloat(points[i].lat);
     const lon2 = parseFloat(points[i].lon);
-    meters += getDistance(lat1, lon1, lat2, lon2);
+    meters += getDistanceMeters(lat1, lon1, lat2, lon2);
   }
   return meters;
 }
@@ -364,3 +393,4 @@ function getPointsFromGpxXml(gpxDocXml) {
 }
 
 window.GPXTrack = GPXTrack;
+window.GPXPeakTrack = GPXPeakTrack;
