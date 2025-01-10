@@ -214,39 +214,56 @@ class GPXTrackReducer {
       "Add Ascent to Peakbagger Extension"
     );
 
-    // Find or create trkseg
-    const oldTrksegs = this.gpxDocXml.getElementsByTagName("trkseg");
-    let trkseg;
-    if (oldTrksegs.length > 0) {
-      trkseg = oldTrksegs[0];
-      // Remove all existing trackpoints
-      while (trkseg.firstChild) {
-        trkseg.removeChild(trkseg.firstChild);
-      }
-    } else {
-      // Create new track structure if it doesn't exist
-      const trk = this.gpxDocXml.createElement("trk");
-      trkseg = this.gpxDocXml.createElement("trkseg");
-      trk.appendChild(trkseg);
-      this.gpxDocXml.documentElement.appendChild(trk);
-    }
+    // Create new track structure
+    const trk = this.gpxDocXml.createElementNS(
+      this.gpxDocXml.documentElement.namespaceURI,
+      "trk"
+    );
+    const trkseg = this.gpxDocXml.createElementNS(
+      this.gpxDocXml.documentElement.namespaceURI,
+      "trkseg"
+    );
+    trk.appendChild(trkseg);
 
     // Add new track points
     newPoints.forEach((point) => {
-      const trkpt = this.gpxDocXml.createElement("trkpt");
+      const trkpt = this.gpxDocXml.createElementNS(
+        this.gpxDocXml.documentElement.namespaceURI,
+        "trkpt"
+      );
       trkpt.setAttribute("lat", point.lat.toString());
       trkpt.setAttribute("lon", point.lon.toString());
 
-      const ele = this.gpxDocXml.createElement("ele");
+      const ele = this.gpxDocXml.createElementNS(
+        this.gpxDocXml.documentElement.namespaceURI,
+        "ele"
+      );
       ele.textContent = point.elevation.toString();
       trkpt.appendChild(ele);
 
-      const time = this.gpxDocXml.createElement("time");
+      const time = this.gpxDocXml.createElementNS(
+        this.gpxDocXml.documentElement.namespaceURI,
+        "time"
+      );
       time.textContent = point.datetime;
       trkpt.appendChild(time);
 
       trkseg.appendChild(trkpt);
     });
+
+    // Replace last track or append if none exist
+    const existingTracks = this.gpxDocXml.getElementsByTagName("trk");
+    // Remove all but the last track
+    while (existingTracks.length > 1) {
+      existingTracks[0].parentNode.removeChild(existingTracks[0]);
+    }
+    // Now replace the last track with ours (or create if it doesn't exist)
+    if (existingTracks.length == 1) {
+      const lastTrack = existingTracks[0];
+      lastTrack.parentNode.replaceChild(trk, lastTrack);
+    } else {
+      this.gpxDocXml.documentElement.appendChild(trk);
+    }
 
     this.gpxTrack = GPXTrack.fromGpxDocXml(this.gpxDocXml);
   }
