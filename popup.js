@@ -1,3 +1,4 @@
+/* global GPXTrack */
 let userId = null;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -19,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (selectedMode === "autodetect") {
         document.getElementById("peak-selection").classList.remove("hidden");
         // Trigger click on the hidden file input
-        document.getElementById("gpx-files").click();
+        //document.getElementById("gpx-files").click();
         autoDetectPeaks();
       } else {
         document.getElementById("peak-selection").classList.add("hidden");
@@ -144,33 +145,69 @@ async function processManualPeakSelection() {
   }
 }
 
-function autoDetectPeaks() {
-  //   document.getElementById("peak-selection").classList.add("hidden");
-  //   const peakContainers = document.getElementById("peak-containers");
-  //   peakContainers.innerHTML = "";
-  //   // TODO
-  //   const mockPeaks = [
-  //     { name: "Mock Peak 1", elevation: 1000, file: file.name },
-  //     { name: "Mock Peak 2", elevation: 1200, file: file.name },
-  //   ];
-  //   createPeakSection(mockPeaks, file.name);
-  //   document.getElementById("peak-selection").classList.remove("hidden");
+async function autoDetectPeaks() {
+  console.log("Autodetecting peaks");
+  const fileInput = document.getElementById("gpx-file-input");
+  fileInput.onchange = async (event) => {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      const gpxContent = e.target.result;
+      const parser = new DOMParser();
+      const gpxDocXml = parser.parseFromString(gpxContent, "text/xml");
+      const peaks = await getNearbyPeaksFromGpxDocXml(gpxDocXml);
+      console.log("Peaks:", peaks);
+    };
+
+    reader.readAsText(file);
+  };
+
+  fileInput.click();
 }
 
-// function createPeakSection(peaks, filename) {
-//   const peakContainers = document.getElementById("peak-containers");
-//   const peakSection = document.createElement("div");
-//   peakSection.className = "peak-section";
-//   peakSection.innerHTML = `<h3>${filename}</h3><ul class="peak-list"></ul>`;
-//   const peakList = peakSection.querySelector(".peak-list");
+async function getNearbyPeaksFromGpxDocXml(gpxDocXml) {
+  const gpxTrack = GPXTrack.fromGpxDocXml(gpxDocXml);
+  const midPoint = gpxTrack.roughMidPoint;
 
-//   peaks.forEach((peak) => {
-//     const li = document.createElement("li");
-//     li.innerHTML = `<input type="checkbox" id="${peak.name}" data-filename="${filename}" data-name="${peak.name}" data-elevation="${peak.elevation}"><label for="${peak.name}">${peak.name} (${peak.elevation} ft)</label>`;
-//     peakList.appendChild(li);
-//   });
-//   peakContainers.appendChild(peakSection);
-// }
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: "getNearbyPeaks",
+      lat: midPoint.lat,
+      lon: midPoint.lon,
+      userId: userId,
+    });
+
+    if (response.error) {
+      console.error("Error fetching nearby peaks:", response.error);
+      throw new Error("Failed to fetch nearby peaks");
+    }
+    const nearbyPeaks = await parseNearbyPeaksResponse(response.peaksText);
+    console.log("Nearby peaks:", nearbyPeaks);
+    // Handle the peaks data here
+  } catch (error) {
+    console.error("Error in message passing:", error);
+  }
+}
+
+async function parseNearbyPeaksResponse(text) {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(text, "text/xml");
+
+  // Convert XML to array of peak objects
+  const peaks = Array.from(xmlDoc.getElementsByTagName("r")).map((peak) => ({
+    id: parseInt(peak.getAttribute("i")),
+    name: peak.getAttribute("n"),
+    elevation: parseInt(peak.getAttribute("f")),
+    latitude: parseFloat(peak.getAttribute("a")),
+    longitude: parseFloat(peak.getAttribute("o")),
+    prominence: parseInt(peak.getAttribute("t")),
+    isolation: parseInt(peak.getAttribute("r")),
+    distance: parseFloat(peak.getAttribute("s")),
+    location: peak.getAttribute("l"),
+  }));
+  return peaks;
+}
 
 function updateLoginSections(isLoggedIn) {
   document.getElementById("loading-section").classList.add("hidden");

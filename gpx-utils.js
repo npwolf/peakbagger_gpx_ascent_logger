@@ -25,29 +25,16 @@ class GPXTrack {
   }
 
   static fromGpxDocXml(gpxDocXml) {
-    const xmlTrackPoints = Array.from(gpxDocXml.getElementsByTagName("trkpt"));
-    if (!xmlTrackPoints.length) {
-      throw new Error("No track points found in GPX file");
+    const gpxTrack = new GPXTrack(getPointsFromGpxXml(gpxDocXml));
+    return gpxTrack;
+  }
+
+  get roughMidPoint() {
+    if (this.trackPoints.length < 2) {
+      return this.trackPoints[0];
     }
-    const points = Array.from(xmlTrackPoints).map((pt) => {
-      const elevation = pt.querySelector("ele")?.textContent;
-      const datetime = pt.querySelector("time")?.textContent;
-      if (!elevation)
-        throw new Error(
-          "Track point missing elevation data. Add elevation data to track with https://www.gpsvisualizer.com/elevation"
-        );
-      if (!datetime)
-        throw new Error(
-          "Track point missing timestamp data. Add timestamp data to track"
-        );
-      return {
-        lat: parseFloat(pt.getAttribute("lat")),
-        lon: parseFloat(pt.getAttribute("lon")),
-        elevation: parseFloat(elevation),
-        datetime: datetime,
-      };
-    });
-    return new GPXTrack(points);
+    const midIndex = Math.floor(this.trackPoints.length / 2);
+    return this.trackPoints[midIndex];
   }
 
   get miles() {
@@ -350,30 +337,30 @@ function trackLengthMeters(points) {
   return meters;
 }
 
-// async function getPeaksNear(lat, lon, userId) {
-//   try {
-//       const url = `https://peakbagger.com/m/pt.ashx?pn=APIGetNearbyPeaks&p1=${lat}&p2=${lon}&p3=${userId}&p4=1&p5=0&p9=0&p10=0&p6=-32000&p11=32000&p7=0&p8=50&p12='en'&p13=0&p14=0&p15=''&p16=0&p17=0.0`;
-//       const response = await fetch(url);
-//       const text = await response.text();
+function getPointsFromGpxXml(gpxDocXml) {
+  const xmlTrackPoints = Array.from(gpxDocXml.getElementsByTagName("trkpt"));
+  if (!xmlTrackPoints.length) {
+    throw new Error("No track points found in GPX file");
+  }
+  const points = Array.from(xmlTrackPoints).map((pt) => {
+    const elevation = pt.querySelector("ele")?.textContent;
+    const datetime = pt.querySelector("time")?.textContent;
+    if (!elevation)
+      throw new Error(
+        "Track point missing elevation data. Add elevation data to track with https://www.gpsvisualizer.com/elevation"
+      );
+    if (!datetime)
+      throw new Error(
+        "Track point missing timestamp data. Add timestamp data to track"
+      );
+    return {
+      lat: parseFloat(pt.getAttribute("lat")),
+      lon: parseFloat(pt.getAttribute("lon")),
+      elevation: parseFloat(elevation),
+      datetime: datetime,
+    };
+  });
+  return points;
+}
 
-//       // Parse XML string
-//       const parser = new DOMParser();
-//       const xmlDoc = parser.parseFromString(text, "text/xml");
-
-//       // Convert XML to array of peak objects
-//       const peaks = Array.from(xmlDoc.getElementsByTagName('r')).map(peak => ({
-//           id: parseInt(peak.getAttribute('i')),
-//           name: peak.getAttribute('n'),
-//           elevation: parseInt(peak.getAttribute('f')),
-//           latitude: parseFloat(peak.getAttribute('a')),
-//           longitude: parseFloat(peak.getAttribute('o')),
-//           prominence: parseInt(peak.getAttribute('t')),
-//           isolation: parseInt(peak.getAttribute('r')),
-//           distance: parseFloat(peak.getAttribute('s')),
-//           location: peak.getAttribute('l'),
-//       }));
-//       return peaks;
-//   } catch (error) {
-//       alert(error)
-//   }
-// }
+window.GPXTrack = GPXTrack;
