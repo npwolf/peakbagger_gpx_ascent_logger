@@ -15,7 +15,6 @@ class GPXTrack {
   #duration = null;
 
   constructor(points) {
-    console.log("Points", points);
     this.trackPoints = points;
     this.firstPoint = this.trackPoints[0];
     this.lastPoint = this.trackPoints[this.trackPoints.length - 1];
@@ -139,6 +138,7 @@ class GPXPeakTrack extends GPXTrack {
     this.peakCoordinates = peakCoordinates;
     this.findClosestPointToPeak();
 
+    console.log("Peak index:", this.peakIndex);
     // Split track at peak
     this.toPeakTrack = new GPXTrack(this.trackPoints.slice(0, this.peakIndex));
     this.fromPeakTrack = new GPXTrack(this.trackPoints.slice(this.peakIndex));
@@ -147,7 +147,7 @@ class GPXPeakTrack extends GPXTrack {
   findClosestPointToPeak() {
     const result = this.findClosestPointToCoordinates(
       this.peakCoordinates.lat,
-      this.peakCoordinates.lng
+      this.peakCoordinates.lon
     );
     this.closestPoint = result.point;
     this.peakIndex = result.index;
