@@ -17,61 +17,23 @@ chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
   }
 });
 
-async function getPeakCoordinates() {
-  const peakElevationFt = parseInt(
-    document.getElementById("PointFt").value,
-    10
-  );
-  if (isNaN(peakElevationFt) || peakElevationFt <= 0) {
-    alert("Please select a peak from the list first");
-    return;
-  }
-
-  const peakId = getPeakId();
-  if (isNaN(peakId) || peakId <= 0) {
-    alert("Unable to determine peak ID");
-    return;
-  }
-
+async function getPeakCoordinates(peakId) {
   try {
-    const response = await Promise.race([
-      new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage(
-          { action: "getPeakCoordinates", peakId },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              reject(new Error(chrome.runtime.lastError.message));
-            } else if (response.error) {
-              reject(new Error(response.error));
-            } else {
-              resolve(response.coordinates);
-            }
-          }
-        );
-      }),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Request timed out")), 10000)
-      ),
-    ]);
+    // Send message to background script
+    const response = await chrome.runtime.sendMessage({
+      action: "getPeakCoordinates",
+      peakId: peakId,
+    });
+    console.log("content getPeakCoordinates response:", response);
+    if (response.error) {
+      throw new Error(response.error);
+    }
 
-    console.log("Coordinates received:", response);
-    return response;
+    return response.coordinates;
   } catch (error) {
-    throw new Error("Unable to get peak coordinates: ", error);
+    console.error("Error fetching peak coordinates:", error);
+    throw new Error("Failed to fetch peak coordinates", error);
   }
-}
-
-function getPeakId() {
-  let peakId;
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.has("pid")) {
-    peakId = parseInt(urlParams.get("pid"), 10);
-  } else {
-    const peakListBox = document.getElementById("PeakListBox");
-    peakId = parseInt(peakListBox.value, 10);
-  }
-  console.log("Got peak ID:", peakId);
-  return peakId;
 }
 
 async function processGPXData(gpxDocXml) {
