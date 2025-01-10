@@ -119,11 +119,10 @@ async function fillFormFields(track) {
   // Ascent stats
   // Starting elevation
   await updateFormId("StartFt", Math.round(track.startElevationFt));
-
   // Net gain
-  await updateFormId("GainFt", Math.round(track.toPeakTrack.netGainFt));
+  const pbNetGain = parseInt(document.getElementById("GainFt").value);
   // PB is a little weird having a net gain and extra gain instead of one number for gain
-  const extraGain = track.toPeakTrack.gainFt - track.toPeakTrack.netGain;
+  const extraGain = track.toPeakTrack.gainFt - pbNetGain;
   if (extraGain > 0) {
     await updateFormId("ExUpFt", Math.round(extraGain));
   }
@@ -135,8 +134,6 @@ async function fillFormFields(track) {
   // Descent Stats
   // Ending elevation and loss
   await updateFormId("EndFt", Math.round(track.endElevationFt));
-  // Net loss (note this is different than calculated loss)
-  await updateFormId("LossFt", track.fromPeakTrack.lossFt);
 
   await updateFormId("DnMi", track.fromPeakTrack.miles);
   // Extra elevation gains/losses
@@ -144,6 +141,11 @@ async function fillFormFields(track) {
   document.getElementById("DnDay").value = track.fromPeakTrack.duration.days;
   document.getElementById("DnHr").value = track.fromPeakTrack.duration.hours;
   document.getElementById("DnMin").value = track.fromPeakTrack.duration.minutes;
+  let gpxSummary = `Total distance: ${track.miles} miles\n`;
+  gpxSummary += `Total elevation gain: ${track.gainFt} ft\n`;
+  gpxSummary += `Total elevation loss: ${track.lossFt} ft\n`;
+  gpxSummary += `Total duration: ${track.duration.days} days, ${track.duration.hours} hours, ${track.duration.minutes} minutes`;
+  await updateFormId("JournalText", gpxSummary);
 }
 
 // Click preview and wait for page to reload before displaying notification

@@ -15,6 +15,7 @@ class GPXTrack {
   #duration = null;
 
   constructor(points) {
+    console.log("Points", points);
     this.trackPoints = points;
     this.firstPoint = this.trackPoints[0];
     this.lastPoint = this.trackPoints[this.trackPoints.length - 1];
@@ -24,7 +25,7 @@ class GPXTrack {
     this.endElevationFt = metersToFeet(this.lastPoint.elevation);
   }
 
-  static fromGpxDoc(gpxDocXml) {
+  static fromGpxDocXml(gpxDocXml) {
     const xmlTrackPoints = Array.from(gpxDocXml.getElementsByTagName("trkpt"));
     if (!xmlTrackPoints.length) {
       throw new Error("No track points found in GPX file");
@@ -74,36 +75,42 @@ class GPXTrack {
     return this.#netGainFt;
   }
 
+  calculateGaindAndLoss() {
+    let totalLoss = 0;
+    let totalGain = 0;
+    let lastSignificantElevation = this.trackPoints[0].elevation;
+
+    for (let i = 1; i < this.trackPoints.length; i++) {
+      const currentElevation = this.trackPoints[i].elevation;
+      const elevationDiff = currentElevation - lastSignificantElevation;
+
+      // Only process elevation changes that exceed the threshold
+      if (Math.abs(elevationDiff) >= ELEVATION_THRESHOLD_METERS) {
+        if (elevationDiff < 0) {
+          // Descent
+          totalLoss += Math.abs(elevationDiff);
+        } else {
+          // Ascent
+          totalGain += elevationDiff;
+        }
+        // Update the last significant elevation point
+        lastSignificantElevation = currentElevation;
+      }
+    }
+    this.#gainFt = metersToFeet(totalGain);
+    this.#lossFt = metersToFeet(totalLoss);
+  }
+
   get gainFt() {
     if (this.#gainFt === null) {
-      // Calculate total elevation gain, ignoring changes below the threshold to reduce noise
-      let gainMeters = 0;
-      let lastValidElevation = this.trackPoints[0].elevation;
-      for (let i = 1; i < this.trackPoints.length; i++) {
-        const elev = this.trackPoints[i].elevation;
-        if (elev - lastValidElevation > ELEVATION_THRESHOLD_METERS) {
-          gainMeters += elev - lastValidElevation;
-          lastValidElevation = elev;
-        }
-      }
-      this.#gainFt = metersToFeet(gainMeters);
+      this.calculateGaindAndLoss();
     }
     return this.#gainFt;
   }
 
   get lossFt() {
     if (this.#lossFt === null) {
-      // Calculate total elevation loss, ignoring changes below the threshold to reduce noise
-      let metersLost = 0;
-      let lastValidElevation = this.trackPoints[0].elevation;
-      for (let i = 1; i < this.trackPoints.length; i++) {
-        const elev = this.trackPoints[i].elevation;
-        if (lastValidElevation - elev > ELEVATION_THRESHOLD_METERS) {
-          metersLost += lastValidElevation - elev;
-          lastValidElevation = elev;
-        }
-      }
-      this.#lossFt = metersToFeet(metersLost);
+      this.calculateGaindAndLoss();
     }
     return this.#lossFt;
   }
@@ -170,7 +177,7 @@ class GPXPeakTrack extends GPXTrack {
 class GPXTrackReducer {
   constructor(gpxDocXml) {
     this.gpxDocXml = gpxDocXml;
-    this.gpxTrack = new GPXTrack().fromGpxDoc(this.gpxDocXml);
+    this.gpxTrack = GPXTrack.fromGpxDocXml(this.gpxDocXml);
   }
 
   reduceGPXTrack(targetPointsLen) {
@@ -241,7 +248,7 @@ class GPXTrackReducer {
       trkseg.appendChild(trkpt);
     });
 
-    this.gpxTrack = new GPXTrack().fromGpxDoc(this.gpxDocXml);
+    this.gpxTrack = GPXTrack.fromGpxDocXml(this.gpxDocXml);
   }
 
   rdp(points, epsilon) {

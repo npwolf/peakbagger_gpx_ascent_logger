@@ -6,6 +6,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const response = await fetch(
           `https://www.peakbagger.com/peak.aspx?pid=${request.peakId}`
         );
+        console.log("Sleeping...");
+        await new Promise((r) => setTimeout(r, 10000));
+        console.log("Woke up!");
         const text = await response.text();
         const coordsMatch = text.match(/([\d.-]+),\s*([\d.-]+)\s*\(Dec Deg\)/);
         const coordinates = coordsMatch
