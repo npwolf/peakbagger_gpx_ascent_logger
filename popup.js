@@ -146,6 +146,47 @@ async function processManualPeakSelection() {
   }
 }
 
+// async function autoDetectPeaks() {
+//   console.log("Autodetecting peaks");
+//   const fileInput = document.getElementById("gpx-file-input");
+
+//   // Create a promise to handle the file selection
+//   const fileSelected = new Promise((resolve) => {
+//     fileInput.onchange = (event) => {
+//       const file = event.target.files[0];
+//       if (file) {
+//         const reader = new FileReader();
+//         reader.onload = (e) => resolve(e.target.result);
+//         reader.readAsText(file);
+//       }
+//     };
+//   });
+
+//   // Trigger click in a separate tick
+//   setTimeout(() => fileInput.click(), 0);
+
+//   // Wait for file selection and processing
+//   try {
+//     const fileContent = await fileSelected;
+//     console.log("File content", fileContent)
+//     const parser = new DOMParser();
+//     const gpxDocXml = parser.parseFromString(fileContent, "text/xml");
+//     const gpxTrack = GPXTrack.fromGpxDocXml(gpxDocXml);
+//      const peaks = await getNearbyPeaksFromGpxDocXml(gpxDocXml);
+//      const sortedPeaks = await getPeaksOnTrack(peaks, gpxTrack);
+//     // for (const peak of sortedPeaks) {
+//     //   console.log(
+//     //     `Peak: ${peak.name}, Distance: ${peak.gpxPeakTrack.closestDistanceFtToPeak}`
+//     //   );
+//     //   console.log("Peaks:", peaks);
+//     // };
+//     return fileContent;
+//   } catch (error) {
+//     console.error("Error reading file:", error);
+//     throw error;
+//   }
+// }
+
 async function autoDetectPeaks() {
   console.log("Autodetecting peaks");
   const fileInput = document.getElementById("gpx-file-input");
@@ -157,10 +198,16 @@ async function autoDetectPeaks() {
       const gpxContent = e.target.result;
       const parser = new DOMParser();
       const gpxDocXml = parser.parseFromString(gpxContent, "text/xml");
+      const gpxTrack = GPXTrack.fromGpxDocXml(gpxDocXml);
       const peaks = await getNearbyPeaksFromGpxDocXml(gpxDocXml);
-      console.log("Peaks:", peaks);
+      const sortedPeaks = await getPeaksOnTrack(peaks, gpxTrack);
+      for (const peak of sortedPeaks) {
+        console.log(
+          `Peak: ${peak.name}, Distance: ${peak.gpxPeakTrack.closestDistanceFtToPeak}`
+        );
+        console.log("Peaks:", peaks);
+      }
     };
-
     reader.readAsText(file);
   };
 
@@ -183,15 +230,14 @@ async function getNearbyPeaksFromGpxDocXml(gpxDocXml) {
       throw new Error("Failed to fetch nearby peaks");
     }
     const nearbyPeaks = await parseNearbyPeaksResponse(response.peaksText);
-    //const filteredPeaks = await removePeaksThatAreTooFar(gpxTrack, nearbyPeaks);
-    const filteredPeaks = nearbyPeaks;
-    await getPeaksToTracks(filteredPeaks, gpxTrack);
+    return nearbyPeaks;
   } catch (error) {
-    console.error("Error in message passing:", error);
+    console.error("Error fetching nearby peaks:", error);
+    throw new Error("Failed to fetch nearby peaks");
   }
 }
 
-async function getPeaksToTracks(peaks, gpxTrack) {
+async function getPeaksOnTrack(peaks, gpxTrack) {
   const startTime = performance.now();
   const peakMap = new Map();
   for (const peak of peaks) {
@@ -201,15 +247,23 @@ async function getPeaksToTracks(peaks, gpxTrack) {
       peakCoordinates
     );
     if (gpxPeakTrack.closestDistanceFtToPeak < 500) {
-      console.log("Peak is on track:", peak.name);
       peakMap.set(peak, gpxPeakTrack);
     }
   }
+  // Create sorted array of peaks by closest distance
+  const sortedPeaks = Array.from(peakMap.entries())
+    .sort((a, b) => a[1].closestDistanceFtToPeak - b[1].closestDistanceFtToPeak)
+    .map(([peak, gpxPeakTrack]) => ({
+      name: `${peak.name}, ${peak.location} (${peak.elevationFt}')`,
+      peakId: peak.id,
+      gpxPeakTrack: gpxPeakTrack,
+    }));
+
   const endTime = performance.now();
   console.log(
     `getPeaksToTracks took ${((endTime - startTime) / 1000).toFixed(2)} seconds`
   );
-  return peakMap;
+  return sortedPeaks;
 }
 
 async function parseNearbyPeaksResponse(text) {

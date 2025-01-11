@@ -136,6 +136,11 @@ class GPXPeakTrack extends GPXTrack {
     this.fromPeakTrack = new GPXTrack(this.trackPoints.slice(this.peakIndex));
   }
 
+  static fromGpxDocXml(gpxDocXml) {
+    const gpxPeakTrack = new GPXPeakTrack(getPointsFromGpxXml(gpxDocXml));
+    return gpxPeakTrack;
+  }
+
   get closestDistanceFtToPeak() {
     if (this.#closestDistanceFtToPeak == null) {
       const closestPoint = this.trackPoints[this.peakIndex];
