@@ -168,6 +168,7 @@ function displayPeakList(sortedPeaks) {
   });
 
   peakContainers.appendChild(peakList);
+  document.getElementById("loading-peaks").classList.add("hidden");
   document.getElementById("peak-selection").classList.remove("hidden");
 }
 
@@ -179,6 +180,7 @@ async function autoDetectPeaks() {
     const reader = new FileReader();
 
     reader.onload = async (e) => {
+      document.getElementById("loading-peaks").classList.remove("hidden");
       const gpxContent = e.target.result;
       const parser = new DOMParser();
       const gpxDocXml = parser.parseFromString(gpxContent, "text/xml");
