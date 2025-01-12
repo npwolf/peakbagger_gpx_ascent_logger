@@ -91,7 +91,7 @@ async function injectContentScripts(tab) {
   }
 }
 
-function selectGPXFile(tab) {
+async function handleGPXFileSelection(callback) {
   const fileInput = document.getElementById("gpx-file-input");
   fileInput.onchange = async (event) => {
     const file = event.target.files[0];
@@ -99,17 +99,23 @@ function selectGPXFile(tab) {
 
     reader.onload = async (e) => {
       const gpxContent = e.target.result;
-      await chrome.tabs.sendMessage(tab.id, {
-        action: "processGPXContent",
-        gpxContent: gpxContent,
-      });
-      window.close();
+      await callback(gpxContent);
     };
 
     reader.readAsText(file);
   };
 
   fileInput.click();
+}
+
+function selectGPXFile(tab) {
+  handleGPXFileSelection(async (gpxContent) => {
+    await chrome.tabs.sendMessage(tab.id, {
+      action: "processGPXContent",
+      gpxContent: gpxContent,
+    });
+    window.close();
+  });
 }
 
 async function processManualPeakSelection() {
@@ -171,31 +177,21 @@ function displayPeakList(sortedPeaks) {
 
 async function autoDetectPeaks() {
   console.log("Autodetecting peaks");
-  const fileInput = document.getElementById("gpx-file-input");
-  fileInput.onchange = async (event) => {
-    const file = event.target.files[0];
-    const reader = new FileReader();
+  handleGPXFileSelection(async (gpxContent) => {
+    document.getElementById("loading-peaks").classList.remove("hidden");
+    const parser = new DOMParser();
+    const gpxDocXml = parser.parseFromString(gpxContent, "text/xml");
+    const gpxTrack = GPXTrack.fromGpxDocXml(gpxDocXml);
+    const peaks = await getNearbyPeaksFromGpxDocXml(gpxDocXml);
+    const sortedPeaks = await getPeaksOnTrack(peaks, gpxTrack);
+    for (const peak of sortedPeaks) {
+      console.log(
+        `Peak: ${peak.name}, Distance: ${peak.gpxPeakTrack.closestDistanceFtToPeak}`
+      );
+    }
 
-    reader.onload = async (e) => {
-      document.getElementById("loading-peaks").classList.remove("hidden");
-      const gpxContent = e.target.result;
-      const parser = new DOMParser();
-      const gpxDocXml = parser.parseFromString(gpxContent, "text/xml");
-      const gpxTrack = GPXTrack.fromGpxDocXml(gpxDocXml);
-      const peaks = await getNearbyPeaksFromGpxDocXml(gpxDocXml);
-      const sortedPeaks = await getPeaksOnTrack(peaks, gpxTrack);
-      for (const peak of sortedPeaks) {
-        console.log(
-          `Peak: ${peak.name}, Distance: ${peak.gpxPeakTrack.closestDistanceFtToPeak}`
-        );
-      }
-
-      displayPeakList(sortedPeaks);
-    };
-    reader.readAsText(file);
-  };
-
-  fileInput.click();
+    displayPeakList(sortedPeaks);
+  });
 }
 
 async function getNearbyPeaksFromGpxDocXml(gpxDocXml) {
