@@ -120,6 +120,31 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
       }
+
+      .mode-buttons {
+        display: flex;
+        gap: 10px;
+        margin: 15px 0;
+      }
+
+      .mode-buttons button {
+        flex: 1;
+        margin-top: 0;
+      }
+
+      .file-selection {
+        margin: 10px 0;
+      }
+
+      .selected-file {
+        margin-top: 5px;
+        padding: 8px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        font-size: 0.9em;
+        word-break: break-all;
+      }
     </style>
   </head>
   <body>
@@ -136,28 +161,27 @@
     <div id="main-content" class="hidden">
       <h1>Peakbagger GPX Ascent Logger</h1>
 
-      <div id="mode-selection">
-        <div class="radio-group">
-          <label class="radio-option">
-            <input type="radio" name="mode" value="autodetect" checked />
-            Auto-detect Peaks
-          </label>
-          <label class="radio-option">
-            <input type="radio" name="mode" value="manual" />
-            Select Manually
-          </label>
-        </div>
-        <p>
-          Auto-detection will analyze your track and find possible peaks that
-          you've reached.
-        </p>
+      <div class="file-selection">
         <button id="select-file-button">Select GPX File</button>
+        <div id="selected-file" class="selected-file hidden"></div>
         <input
           type="file"
           id="gpx-file-input"
           accept=".gpx"
           style="display: none"
         />
+      </div>
+
+      <div id="mode-selection" class="hidden">
+        <p>How would you like to process this track?</p>
+        <div class="mode-buttons">
+          <button id="auto-detect">Auto-detect Peaks</button>
+          <button id="manual-select">Select Manually</button>
+        </div>
+        <p>
+          Auto-detection will analyze your track and find possible peaks that
+          you've reached.
+        </p>
         <div id="loading-peaks" class="hidden">
           Loading Peaks...
           <div class="spinner"></div>

@@ -10,21 +10,33 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Add event listener for the unified file selection button
+  // File selection handler
   document
     .getElementById("select-file-button")
     .addEventListener("click", () => {
-      const selectedMode = document.querySelector(
-        "input[name=\"mode\"]:checked"
-      ).value;
-
-      if (selectedMode === "autodetect") {
-        autoDetectPeaks();
-      } else {
-        document.getElementById("peak-selection").classList.add("hidden");
-        processManualPeakSelection();
-      }
+      const fileInput = document.getElementById("gpx-file-input");
+      fileInput.onchange = async (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          const selectedFile = document.getElementById("selected-file");
+          selectedFile.textContent = file.name;
+          selectedFile.classList.remove("hidden");
+          document.getElementById("mode-selection").classList.remove("hidden");
+        }
+      };
+      fileInput.click();
     });
+
+  // Mode selection handlers
+  document.getElementById("auto-detect").addEventListener("click", () => {
+    document.getElementById("peak-selection").classList.add("hidden");
+    autoDetectPeaks();
+  });
+
+  document.getElementById("manual-select").addEventListener("click", () => {
+    document.getElementById("peak-selection").classList.add("hidden");
+    processManualPeakSelection();
+  });
 
   document
     .getElementById("draft-ascents")
@@ -91,21 +103,16 @@ async function injectContentScripts(tab) {
   }
 }
 
-async function handleGPXFileSelection(callback) {
-  const fileInput = document.getElementById("gpx-file-input");
-  fileInput.onchange = async (event) => {
-    const file = event.target.files[0];
-    const reader = new FileReader();
+function handleGPXFileSelection(callback) {
+  const file = document.getElementById("gpx-file-input").files[0];
+  const reader = new FileReader();
 
-    reader.onload = async (e) => {
-      const gpxContent = e.target.result;
-      await callback(gpxContent);
-    };
-
-    reader.readAsText(file);
+  reader.onload = async (e) => {
+    const gpxContent = e.target.result;
+    await callback(gpxContent);
   };
 
-  fileInput.click();
+  reader.readAsText(file);
 }
 
 function selectGPXFile(tab) {
