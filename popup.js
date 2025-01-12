@@ -19,9 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
       ).value;
 
       if (selectedMode === "autodetect") {
-        document.getElementById("peak-selection").classList.remove("hidden");
-        // Trigger click on the hidden file input
-        //document.getElementById("gpx-files").click();
         autoDetectPeaks();
       } else {
         document.getElementById("peak-selection").classList.add("hidden");
@@ -146,46 +143,33 @@ async function processManualPeakSelection() {
   }
 }
 
-// async function autoDetectPeaks() {
-//   console.log("Autodetecting peaks");
-//   const fileInput = document.getElementById("gpx-file-input");
+function displayPeakList(sortedPeaks) {
+  const peakContainers = document.getElementById("peak-containers");
+  peakContainers.innerHTML = ""; // Clear existing content
 
-//   // Create a promise to handle the file selection
-//   const fileSelected = new Promise((resolve) => {
-//     fileInput.onchange = (event) => {
-//       const file = event.target.files[0];
-//       if (file) {
-//         const reader = new FileReader();
-//         reader.onload = (e) => resolve(e.target.result);
-//         reader.readAsText(file);
-//       }
-//     };
-//   });
+  const peakList = document.createElement("ul");
+  peakList.className = "peak-list";
 
-//   // Trigger click in a separate tick
-//   setTimeout(() => fileInput.click(), 0);
+  sortedPeaks.forEach((peak) => {
+    const listItem = document.createElement("li");
 
-//   // Wait for file selection and processing
-//   try {
-//     const fileContent = await fileSelected;
-//     console.log("File content", fileContent)
-//     const parser = new DOMParser();
-//     const gpxDocXml = parser.parseFromString(fileContent, "text/xml");
-//     const gpxTrack = GPXTrack.fromGpxDocXml(gpxDocXml);
-//      const peaks = await getNearbyPeaksFromGpxDocXml(gpxDocXml);
-//      const sortedPeaks = await getPeaksOnTrack(peaks, gpxTrack);
-//     // for (const peak of sortedPeaks) {
-//     //   console.log(
-//     //     `Peak: ${peak.name}, Distance: ${peak.gpxPeakTrack.closestDistanceFtToPeak}`
-//     //   );
-//     //   console.log("Peaks:", peaks);
-//     // };
-//     return fileContent;
-//   } catch (error) {
-//     console.error("Error reading file:", error);
-//     throw error;
-//   }
-// }
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = peak.id;
+    checkbox.checked = true; // Default to checked
+
+    const label = document.createElement("label");
+    label.htmlFor = peak.id;
+    label.textContent = peak.name;
+
+    listItem.appendChild(checkbox);
+    listItem.appendChild(label);
+    peakList.appendChild(listItem);
+  });
+
+  peakContainers.appendChild(peakList);
+  document.getElementById("peak-selection").classList.remove("hidden");
+}
 
 async function autoDetectPeaks() {
   console.log("Autodetecting peaks");
@@ -205,8 +189,9 @@ async function autoDetectPeaks() {
         console.log(
           `Peak: ${peak.name}, Distance: ${peak.gpxPeakTrack.closestDistanceFtToPeak}`
         );
-        console.log("Peaks:", peaks);
       }
+
+      displayPeakList(sortedPeaks);
     };
     reader.readAsText(file);
   };
@@ -242,6 +227,7 @@ async function getPeaksOnTrack(peaks, gpxTrack) {
   const peakMap = new Map();
   for (const peak of peaks) {
     const peakCoordinates = { lat: peak.lat, lon: peak.lon };
+    console.log("Track Points:", gpxTrack.trackPoints.length);
     const gpxPeakTrack = new GPXPeakTrack(
       gpxTrack.trackPoints,
       peakCoordinates

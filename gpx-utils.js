@@ -16,6 +16,9 @@ class GPXTrack {
 
   constructor(points) {
     this.trackPoints = points;
+    if (!this.trackPoints.length) {
+      throw new Error("No track points found in GPX file");
+    }
     this.firstPoint = this.trackPoints[0];
     this.lastPoint = this.trackPoints[this.trackPoints.length - 1];
     // Calculate basic metrics
@@ -128,6 +131,7 @@ class GPXPeakTrack extends GPXTrack {
   #closestDistanceFtToPeak = null;
 
   constructor(points, peakCoordinates) {
+    console.log("GPXPeakTrack points", points.length);
     super(points);
     this.peakCoordinates = peakCoordinates;
     this.findClosestPointToPeak();
@@ -181,6 +185,7 @@ class GPXPeakTrack extends GPXTrack {
         closestPointIndex = index;
       }
     });
+
     return { point: closestPoint, index: closestPointIndex };
   }
 }
