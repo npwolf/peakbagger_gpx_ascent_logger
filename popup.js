@@ -25,6 +25,10 @@ document.addEventListener("DOMContentLoaded", () => {
         processManualPeakSelection();
       }
     });
+
+  document
+    .getElementById("draft-ascents")
+    .addEventListener("click", openAscentTabs);
 });
 
 // function showAutodetectSection() {
@@ -155,11 +159,11 @@ function displayPeakList(sortedPeaks) {
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
-    checkbox.id = peak.id;
+    checkbox.id = peak.peakId; // Use peakId instead of id
     checkbox.checked = true; // Default to checked
 
     const label = document.createElement("label");
-    label.htmlFor = peak.id;
+    label.htmlFor = peak.peakId;
     label.textContent = peak.name;
 
     listItem.appendChild(checkbox);
@@ -334,4 +338,14 @@ async function checkLoginStatus() {
     console.error("Error checking login status:", error);
     updateLoginSections(false);
   }
+}
+
+function openAscentTabs() {
+  const checkboxes = document.querySelectorAll(
+    ".peak-list input[type=\"checkbox\"]:checked"
+  );
+  checkboxes.forEach((checkbox) => {
+    const url = `https://peakbagger.com/climber/ascentedit.aspx?pid=${checkbox.id}&cid=${userId}`;
+    chrome.tabs.create({ url });
+  });
 }
