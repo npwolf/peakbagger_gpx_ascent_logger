@@ -31,13 +31,6 @@ document.addEventListener("DOMContentLoaded", () => {
     .addEventListener("click", openAscentTabs);
 });
 
-// function showAutodetectSection() {
-//   document.getElementById("autodetect-section").classList.remove("hidden");
-//   document.getElementById("mode-selection").classList.add("hidden");
-//   document.getElementById("navigation-message").classList.add("hidden");
-//   document.getElementById("navigation-message").innerHTML = "";
-// }
-
 async function validatePeakbaggerPage(tab) {
   const ascentEditUrl = `https://www.peakbagger.com/climber/ascentedit.aspx?cid=${userId}`;
   const navigationMessage = document.getElementById("navigation-message");
