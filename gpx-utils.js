@@ -215,7 +215,8 @@ class GPXTrackReducer {
       console.log(
         `Still need to reduce more after rdp. Reducing GPX track from ${points.length} to ${targetPointsLen} points.`
       );
-      const reductionRatio = targetPointsLen / points.length;
+      // Added + 1 to ensure we don't go over the target
+      const reductionRatio = targetPointsLen / (points.length + 1);
       const newPoints = [];
       for (let i = 0; i < points.length; i += 1 / reductionRatio) {
         newPoints.push(points[Math.floor(i)]);
