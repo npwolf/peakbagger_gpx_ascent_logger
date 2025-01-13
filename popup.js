@@ -115,7 +115,7 @@ function handleGPXFileSelection(callback) {
   reader.readAsText(file);
 }
 
-function selectGPXFile(tab) {
+function manualSelectGPXFile(tab) {
   handleGPXFileSelection(async (gpxContent) => {
     await chrome.tabs.sendMessage(tab.id, {
       action: "processGPXContent",
@@ -143,7 +143,7 @@ async function processManualPeakSelection() {
     }
 
     await injectContentScripts(tab);
-    selectGPXFile(tab);
+    manualSelectGPXFile(tab);
   } catch (error) {
     console.error("Error checking page:", error);
     const navigationMessage = document.getElementById("navigation-message");
@@ -183,22 +183,27 @@ function displayPeakList(sortedPeaks) {
 }
 
 async function autoDetectPeaks() {
-  console.log("Autodetecting peaks");
-  handleGPXFileSelection(async (gpxContent) => {
-    document.getElementById("loading-peaks").classList.remove("hidden");
-    const parser = new DOMParser();
-    const gpxDocXml = parser.parseFromString(gpxContent, "text/xml");
-    const gpxTrack = GPXTrack.fromGpxDocXml(gpxDocXml);
-    const peaks = await getNearbyPeaksFromGpxDocXml(gpxDocXml);
-    const sortedPeaks = await getPeaksOnTrack(peaks, gpxTrack);
-    for (const peak of sortedPeaks) {
-      console.log(
-        `Peak: ${peak.name}, Distance: ${peak.gpxPeakTrack.closestDistanceFtToPeak}`
-      );
-    }
+  try {
+    console.log("Autodetecting peaks");
+    handleGPXFileSelection(async (gpxContent) => {
+      document.getElementById("loading-peaks").classList.remove("hidden");
+      const parser = new DOMParser();
+      const gpxDocXml = parser.parseFromString(gpxContent, "text/xml");
+      const gpxTrack = GPXTrack.fromGpxDocXml(gpxDocXml);
+      const peaks = await getNearbyPeaksFromGpxDocXml(gpxDocXml);
+      const sortedPeaks = await getPeaksOnTrack(peaks, gpxTrack);
+      for (const peak of sortedPeaks) {
+        console.log(
+          `Peak: ${peak.name}, Distance: ${peak.gpxPeakTrack.closestDistanceFtToPeak}`
+        );
+      }
 
-    displayPeakList(sortedPeaks);
-  });
+      displayPeakList(sortedPeaks);
+    });
+  } catch (error) {
+    console.error("Error autodetecting peaks:", error);
+    alert("Error autodetecting peaks. Please try again.");
+  }
 }
 
 async function getNearbyPeaksFromGpxDocXml(gpxDocXml) {
@@ -287,37 +292,6 @@ function updateLoginSections(isLoggedIn) {
 
 async function checkLoginStatus() {
   try {
-    // First check current tab
-    const [currentTab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    if (
-      currentTab &&
-      currentTab.url.match(/^https?:\/\/(www\.)?peakbagger\.com/)
-    ) {
-      const cidMatch = currentTab.url.match(/[?&]cid=(\d+)/);
-      if (cidMatch && cidMatch[1]) {
-        userId = cidMatch[1];
-        updateLoginSections(true);
-        return;
-      }
-    }
-
-    // Then check all open tabs
-    const allTabs = await chrome.tabs.query({
-      url: ["*://www.peakbagger.com/*", "*://peakbagger.com/*"],
-    });
-    for (const tab of allTabs) {
-      const cidMatch = tab.url.match(/[?&]cid=(\d+)/);
-      if (cidMatch && cidMatch[1]) {
-        userId = cidMatch[1];
-        updateLoginSections(true);
-        return;
-      }
-    }
-
-    // Fall back to fetch method
     const response = await fetch("https://www.peakbagger.com/Default.aspx");
     const text = await response.text();
     const match = text.match(
