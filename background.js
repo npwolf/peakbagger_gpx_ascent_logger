@@ -12,6 +12,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch((error) => sendResponse({ error: error.message }));
     return true;
   }
+  if (request.action === "searchPeaks") {
+    handlePeakSearch(request.searchText, request.userId)
+      .then((data) => sendResponse(data))
+      .catch((error) => sendResponse({ error: error.message }));
+    return true;
+  }
 });
 
 async function handlePeakDataFetch(peakId) {
@@ -50,6 +56,22 @@ async function handleNearbyPeaksFetch(lat, lon, userId) {
     }
     const text = await response.text();
     console.log("Nearby peaks text:", text);
+    return { peaksText: text };
+  } catch (error) {
+    console.error(error);
+    return { error: error.message };
+  }
+}
+
+async function handlePeakSearch(searchText, userId) {
+  try {
+    const encodedSearch = encodeURIComponent(searchText);
+    const url = `https://peakbagger.com/m/ps.aspx?s=${encodedSearch}&c=${userId}&lang=en`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const text = await response.text();
     return { peaksText: text };
   } catch (error) {
     console.error(error);

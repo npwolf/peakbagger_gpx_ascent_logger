@@ -41,6 +41,12 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("draft-ascents")
     .addEventListener("click", openAscentTabs);
+
+  document.getElementById("manual-select").addEventListener("click", () => {
+    document.getElementById("peak-selection").classList.add("hidden");
+    document.getElementById("manual-search").classList.remove("hidden");
+    setupManualSearch();
+  });
 });
 
 async function validatePeakbaggerPage(tab) {
@@ -318,4 +324,73 @@ function openAscentTabs() {
     const url = `https://peakbagger.com/climber/ascentedit.aspx?pid=${checkbox.id}&cid=${userId}`;
     chrome.tabs.create({ url });
   });
+}
+
+function setupManualSearch() {
+  document
+    .getElementById("search-peaks-button")
+    .addEventListener("click", searchPeaks);
+  document
+    .getElementById("draft-manual-ascent")
+    .addEventListener("click", draftManualAscent);
+}
+
+async function searchPeaks() {
+  const searchText = document.getElementById("peak-search").value;
+  if (!searchText) return;
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: "searchPeaks",
+      searchText: searchText,
+      userId: userId,
+    });
+
+    if (response.error) {
+      console.error("Error searching peaks:", response.error);
+      return;
+    }
+
+    const peaks = parseSearchResults(response.peaksText);
+    displaySearchResults(peaks);
+  } catch (error) {
+    console.error("Error during peak search:", error);
+  }
+}
+
+function parseSearchResults(text) {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(text, "text/xml");
+
+  return Array.from(xmlDoc.getElementsByTagName("r")).map((peak) => ({
+    id: peak.getAttribute("i"),
+    name: peak.getAttribute("n"),
+    elevation: peak.getAttribute("f"),
+    location: peak.getAttribute("l"),
+    lat: peak.getAttribute("a"),
+    lon: peak.getAttribute("o"),
+  }));
+}
+
+function displaySearchResults(peaks) {
+  const select = document.getElementById("peak-results");
+  select.innerHTML = "";
+
+  peaks.forEach((peak) => {
+    const option = document.createElement("option");
+    option.value = JSON.stringify(peak);
+    option.textContent = `${peak.name}, ${peak.location} (${peak.elevation}')`;
+    select.appendChild(option);
+  });
+}
+
+function draftManualAscent() {
+  const select = document.getElementById("peak-results");
+  const selectedOption = select.options[select.selectedIndex];
+  if (!selectedOption) return;
+
+  const peak = JSON.parse(selectedOption.value);
+  console.log("Selected peak:", peak);
+  console.log("Peak ID:", peak.id);
+  console.log("Coordinates:", { lat: peak.lat, lon: peak.lon });
 }
