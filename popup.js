@@ -74,6 +74,7 @@ function displayPeakList(sortedPeaks) {
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.id = peak.peakId; // Use peakId instead of id
+    checkbox.value = JSON.stringify(peak);
     checkbox.checked = true; // Default to checked
 
     const label = document.createElement("label");
@@ -127,7 +128,8 @@ async function getNearbyPeaksFromGpxDocXml(gpxDocXml) {
 
     if (response.error) {
       console.error("Error fetching nearby peaks:", response.error);
-      throw new Error("Failed to fetch nearby peaks");
+      alert("Failed to fetch nearby peaks from Peakbagger!");
+      return [];
     }
     const nearbyPeaks = await parseNearbyPeaksResponse(response.peaksText);
     return nearbyPeaks;
@@ -170,6 +172,11 @@ async function getPeaksOnTrack(peaks, gpxTrack) {
 async function parseNearbyPeaksResponse(text) {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(text, "text/xml");
+  const pbElement = xmlDoc.getElementsByTagName("pb")[0];
+  if (!pbElement) {
+    alert("Unexpected results from peak search. Try again later.");
+    return [];
+  }
 
   // Convert XML to array of peak objects
   // Example row:
@@ -218,13 +225,28 @@ async function checkLoginStatus() {
   }
 }
 
-function openAscentTabs() {
+async function openAscentTabs() {
   const checkboxes = document.querySelectorAll(
     ".peak-list input[type=\"checkbox\"]:checked"
   );
+  let peaks = [];
   checkboxes.forEach((checkbox) => {
-    const url = `https://peakbagger.com/climber/ascentedit.aspx?pid=${checkbox.id}&cid=${userId}`;
-    chrome.tabs.create({ url });
+    const peakData = JSON.parse(checkbox.value);
+    console.log("Peak data:", peakData);
+    const peak = {
+      peakId: peakData.peakId,
+      peakCoordinates: peakData.gpsPeakTrack.peakCoordinates,
+    };
+    console.log("Adding peak to array:", peak);
+    peaks.push(peak);
+  });
+  handleGPXFileSelection(async (gpxContent) => {
+    await chrome.runtime.sendMessage({
+      action: "draftMultiplePBAscents",
+      gpxContent: gpxContent,
+      peaks: peaks,
+      userId: userId,
+    });
   });
 }
 
@@ -263,7 +285,12 @@ async function searchPeaks() {
 function parseSearchResults(text) {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(text, "text/xml");
-
+  // Check for <pb> element
+  const pbElement = xmlDoc.getElementsByTagName("pb")[0];
+  if (!pbElement) {
+    alert("Unexpected results from peak search. Try again later.");
+    return [];
+  }
   return Array.from(xmlDoc.getElementsByTagName("r")).map((peak) => ({
     id: peak.getAttribute("i"),
     name: peak.getAttribute("n"),

@@ -29,7 +29,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   if (request.action === "draftMultiplePBAscents") {
     for (const peak of request.peaks) {
-      draftPBAscent(request.gpxContent, peak.peakCoordinates, peak.userId);
+      console.log("Drafting ascent for peak:", peak);
+      draftPBAscent(request.gpxContent, peak.peakCoordinates, request.userId);
     }
     return true; // Keep message channel open for async response
   }
