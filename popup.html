@@ -145,6 +145,30 @@
         font-size: 0.9em;
         word-break: break-all;
       }
+
+      .search-container {
+        margin: 10px 0;
+      }
+
+      .search-row {
+        display: flex;
+        gap: 10px;
+        margin: 5px 0;
+        align-items: center;
+      }
+
+      .search-row input {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+      }
+
+      .search-row button {
+        margin-top: 0;
+        width: auto !important; /* Override the default full width */
+        white-space: nowrap;
+      }
     </style>
   </head>
   <body>
@@ -192,8 +216,10 @@
         <h2>Search for Peak</h2>
         <div class="search-container">
           <label for="peak-search">Search for the peak to log ascent for:</label>
-          <input type="text" id="peak-search" class="search-input">
-          <button id="search-peaks-button">Search</button>
+          <div class="search-row">
+            <input type="text" id="peak-search" class="search-input">
+            <button id="search-peaks-button">Search</button>
+          </div>
           <select id="peak-results" size="5" style="width: 100%; margin-top: 10px;">
           </select>
           <button id="draft-manual-ascent">Draft New Ascent in New Tab</button>

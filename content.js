@@ -13,37 +13,17 @@ chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
   if (request.action === "processGPXContent") {
     const parser = new DOMParser();
     const gpxDocXml = parser.parseFromString(request.gpxContent, "text/xml");
-    processGPXData(gpxDocXml);
+    processGPXData(gpxDocXml, request.peakCoordinates);
   }
 });
 
-async function getPeakCoordinates(peakId) {
-  try {
-    // Send message to background script
-    const response = await chrome.runtime.sendMessage({
-      action: "getPeakCoordinates",
-      peakId: peakId,
-    });
-    console.log("content getPeakCoordinates response:", response);
-    if (response.error) {
-      throw new Error(response.error);
-    }
-
-    return response.coordinates;
-  } catch (error) {
-    console.error("Error fetching peak coordinates:", error);
-    throw new Error("Failed to fetch peak coordinates", error);
-  }
-}
-
-async function processGPXData(gpxDocXml) {
+async function processGPXData(gpxDocXml, peakCoordinates) {
   try {
     // Create a file from the GPX document
     const gpxTrackReducer = new GPXTrackReducer(gpxDocXml);
     gpxTrackReducer.reduceGPXTrack(MAX_PEAKBAGGER_GPX_POINTS);
     gpxDocXml = gpxTrackReducer.gpxDocXml;
 
-    const peakCoordinates = await getPeakCoordinates();
     console.log("processGPXData: Peak coordinates:", peakCoordinates);
     const track = new GPXPeakTrack(
       gpxTrackReducer.gpxTrack.trackPoints,
