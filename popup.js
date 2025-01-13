@@ -285,6 +285,7 @@ function displaySearchResults(peaks) {
     select.appendChild(option);
   });
 }
+
 async function draftManualAscent() {
   const select = document.getElementById("peak-results");
   const selectedOption = select.options[select.selectedIndex];
@@ -300,9 +301,10 @@ async function draftManualAscent() {
 
     // Send all necessary data to background script
     await chrome.runtime.sendMessage({
-      action: "processGPXInNewTab",
+      action: "draftPBAscent",
       gpxContent: gpxContent,
-      peakData: peak,
+      peakId: peak.id,
+      peakCoordinates: { lat: peak.lat, lon: peak.lon },
       userId: userId,
     });
   };
