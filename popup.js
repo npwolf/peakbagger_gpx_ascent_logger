@@ -49,26 +49,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-async function injectContentScripts(tab) {
-  const isLoaded = await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    func: () =>
-      Object.prototype.hasOwnProperty.call(window, "contentScriptLoaded"),
-  });
-
-  if (!isLoaded[0].result) {
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ["gpx-utils.js"],
-    });
-
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ["content.js"],
-    });
-  }
-}
-
 function handleGPXFileSelection(callback) {
   const file = document.getElementById("gpx-file-input").files[0];
   const reader = new FileReader();
@@ -305,33 +285,27 @@ function displaySearchResults(peaks) {
     select.appendChild(option);
   });
 }
-
 async function draftManualAscent() {
   const select = document.getElementById("peak-results");
   const selectedOption = select.options[select.selectedIndex];
   if (!selectedOption) return;
-  const peak = JSON.parse(selectedOption.value);
-  console.log("Selected peak:", peak);
-  console.log("Peak ID:", peak.id);
-  console.log("Coordinates:", { lat: peak.lat, lon: peak.lon });
-  const url = `https://peakbagger.com/climber/ascentedit.aspx?pid=${peak.id}&cid=${userId}`;
-  const tab = await chrome.tabs.create({ url });
-  // Wait for page to be loaded before injecting content scripts
-  await new Promise((resolve) => {
-    chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-      if (tabId === tab.id && info.status === "complete") {
-        chrome.tabs.onUpdated.removeListener(listener);
-        resolve();
-      }
-    });
-  });
-  await injectContentScripts(tab);
 
-  handleGPXFileSelection(async (gpxContent) => {
-    await chrome.tabs.sendMessage(tab.id, {
-      action: "processGPXContent",
+  const peak = JSON.parse(selectedOption.value);
+  const file = document.getElementById("gpx-file-input").files[0];
+
+  // Read the file and send its content to the background script
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const gpxContent = e.target.result;
+
+    // Send all necessary data to background script
+    await chrome.runtime.sendMessage({
+      action: "processGPXInNewTab",
       gpxContent: gpxContent,
-      gpxCoordinates: { lat: peak.lat, lon: peak.lon },
+      peakData: peak,
+      userId: userId,
     });
-  });
+  };
+
+  reader.readAsText(file);
 }

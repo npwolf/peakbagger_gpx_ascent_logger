@@ -1,3 +1,4 @@
+window.gpxUtilsScriptLoaded = true;
 console.log("GPX utils loaded");
 
 // Define a constant for the vertical noise threshold

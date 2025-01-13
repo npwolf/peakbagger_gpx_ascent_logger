@@ -18,6 +18,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch((error) => sendResponse({ error: error.message }));
     return true;
   }
+  if (request.action === "processGPXInNewTab") {
+    draftPBAscent(request.gpxContent, request.peakData, request.userId);
+    return true; // Keep message channel open for async response
+  }
 });
 
 async function handlePeakDataFetch(peakId) {
@@ -76,5 +80,62 @@ async function handlePeakSearch(searchText, userId) {
   } catch (error) {
     console.error(error);
     return { error: error.message };
+  }
+}
+
+async function draftPBAscent(gpxContent, peak, userId) {
+  try {
+    // Create the tab
+    const url = `https://peakbagger.com/climber/ascentedit.aspx?pid=${peak.id}&cid=${userId}`;
+    const tab = await chrome.tabs.create({ url });
+
+    // Wait for page load
+    await new Promise((resolve) => {
+      chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+        if (tabId === tab.id && info.status === "complete") {
+          chrome.tabs.onUpdated.removeListener(listener);
+          resolve();
+        }
+      });
+    });
+
+    // Inject content scripts
+    await chrome.scripting
+      .executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          if (!window.contentScriptLoaded) {
+            window.contentScriptLoaded = true;
+            return true;
+          }
+          console.log("Prevented duplicate content script injection");
+          return false;
+        },
+      })
+      .then(async (results) => {
+        if (results[0].result) {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ["content.js"],
+          });
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ["gpx-utils.js"],
+          });
+        }
+      });
+
+    // Wait a bit for content script to initialize
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    console.log("Sending GPX content to new tab: ", peak.lat, peak.lon);
+    // Send the GPX content to the tab
+    await chrome.tabs.sendMessage(tab.id, {
+      action: "processGPXContent",
+      gpxContent: gpxContent,
+      gpxCoordinates: { lat: peak.lat, lon: peak.lon },
+    });
+  } catch (error) {
+    console.error("Error processing GPX in new tab:", error);
   }
 }

@@ -13,12 +13,18 @@ chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
   if (request.action === "processGPXContent") {
     const parser = new DOMParser();
     const gpxDocXml = parser.parseFromString(request.gpxContent, "text/xml");
-    processGPXData(gpxDocXml, request.peakCoordinates);
+    processGPXData(gpxDocXml, request.gpxCoordinates);
   }
 });
 
 async function processGPXData(gpxDocXml, peakCoordinates) {
   try {
+    // Check if we're on an ascent page
+    if (!document.body.textContent.includes("Ascent of")) {
+      alert("Failed to properly load ascent page. Try logging in again.");
+      return;
+    }
+
     // Create a file from the GPX document
     const gpxTrackReducer = new GPXTrackReducer(gpxDocXml);
     gpxTrackReducer.reduceGPXTrack(MAX_PEAKBAGGER_GPX_POINTS);
