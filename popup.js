@@ -1,6 +1,7 @@
 /* global GPXTrack */
 /* global GPXPeakTrack */
 let userId = null;
+let gpxDocText = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   checkLoginStatus();
@@ -13,19 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // File selection handler
   document
     .getElementById("select-file-button")
-    .addEventListener("click", () => {
-      const fileInput = document.getElementById("gpx-file-input");
-      fileInput.onchange = async (event) => {
-        const file = event.target.files[0];
-        if (file) {
-          const selectedFile = document.getElementById("selected-file");
-          selectedFile.textContent = file.name;
-          selectedFile.classList.remove("hidden");
-          document.getElementById("mode-selection").classList.remove("hidden");
-        }
-      };
-      fileInput.click();
-    });
+    .addEventListener("click", handleFileSelection);
 
   // Mode selection handlers
   document.getElementById("auto-detect").addEventListener("click", () => {
@@ -49,16 +38,23 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-function handleGPXFileSelection(callback) {
-  const file = document.getElementById("gpx-file-input").files[0];
-  const reader = new FileReader();
-
-  reader.onload = async (e) => {
-    const gpxContent = e.target.result;
-    await callback(gpxContent);
+function handleFileSelection() {
+  const fileInput = document.getElementById("gpx-file-input");
+  fileInput.onchange = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        gpxDocText = e.target.result;
+        const selectedFile = document.getElementById("selected-file");
+        selectedFile.textContent = file.name;
+        selectedFile.classList.remove("hidden");
+        document.getElementById("mode-selection").classList.remove("hidden");
+      };
+      reader.readAsText(file);
+    }
   };
-
-  reader.readAsText(file);
+  fileInput.click();
 }
 
 function displayPeakList(sortedPeaks) {
@@ -96,21 +92,21 @@ function displayPeakList(sortedPeaks) {
 async function autoDetectPeaks() {
   try {
     console.log("Autodetecting peaks");
-    handleGPXFileSelection(async (gpxContent) => {
-      document.getElementById("loading-peaks").classList.remove("hidden");
-      const parser = new DOMParser();
-      const gpxDocXml = parser.parseFromString(gpxContent, "text/xml");
-      const gpxTrack = GPXTrack.fromGpxDocXml(gpxDocXml);
-      const peaks = await getNearbyPeaksFromGpxDocXml(gpxDocXml);
-      const sortedPeaks = await getPeaksOnTrack(peaks, gpxTrack);
-      for (const peak of sortedPeaks) {
-        console.log(
-          `Peak: ${peak.name}, Distance: ${peak.gpxPeakTrack.closestDistanceFtToPeak}`
-        );
-      }
+    if (!gpxDocText) return;
 
-      displayPeakList(sortedPeaks);
-    });
+    document.getElementById("loading-peaks").classList.remove("hidden");
+    const parser = new DOMParser();
+    const gpxDocXml = parser.parseFromString(gpxDocText, "text/xml");
+    const gpxTrack = GPXTrack.fromGpxDocXml(gpxDocXml);
+    const peaks = await getNearbyPeaksFromGpxDocXml(gpxDocXml);
+    const sortedPeaks = await getPeaksOnTrack(peaks, gpxTrack);
+    for (const peak of sortedPeaks) {
+      console.log(
+        `Peak: ${peak.name}, Distance: ${peak.gpxPeakTrack.closestDistanceFtToPeak}`
+      );
+    }
+
+    displayPeakList(sortedPeaks);
   } catch (error) {
     console.error("Error autodetecting peaks:", error);
     alert("Error autodetecting peaks. Please try again.");
@@ -231,6 +227,8 @@ async function openAscentTabs() {
   const checkboxes = document.querySelectorAll(
     ".peak-list input[type=\"checkbox\"]:checked"
   );
+  if (!gpxDocText) return;
+
   let peaks = [];
   checkboxes.forEach((checkbox) => {
     const peak = {
@@ -240,13 +238,12 @@ async function openAscentTabs() {
     console.log("Adding peak to array:", peak);
     peaks.push(peak);
   });
-  handleGPXFileSelection(async (gpxContent) => {
-    await chrome.runtime.sendMessage({
-      action: "draftMultiplePBAscents",
-      gpxContent: gpxContent,
-      peaks: peaks,
-      userId: userId,
-    });
+
+  await chrome.runtime.sendMessage({
+    action: "draftMultiplePBAscents",
+    gpxContent: gpxDocText,
+    peaks: peaks,
+    userId: userId,
   });
 }
 
@@ -316,25 +313,15 @@ function displaySearchResults(peaks) {
 async function draftManualAscent() {
   const select = document.getElementById("peak-results");
   const selectedOption = select.options[select.selectedIndex];
-  if (!selectedOption) return;
+  if (!selectedOption || !gpxDocText) return;
 
   const peak = JSON.parse(selectedOption.value);
-  const file = document.getElementById("gpx-file-input").files[0];
 
-  // Read the file and send its content to the background script
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const gpxContent = e.target.result;
-
-    // Send all necessary data to background script
-    await chrome.runtime.sendMessage({
-      action: "draftPBAscent",
-      gpxContent: gpxContent,
-      peakId: peak.id,
-      peakCoordinates: { lat: peak.lat, lon: peak.lon },
-      userId: userId,
-    });
-  };
-
-  reader.readAsText(file);
+  await chrome.runtime.sendMessage({
+    action: "draftPBAscent",
+    gpxContent: gpxDocText,
+    peakId: peak.id,
+    peakCoordinates: { lat: peak.lat, lon: peak.lon },
+    userId: userId,
+  });
 }
