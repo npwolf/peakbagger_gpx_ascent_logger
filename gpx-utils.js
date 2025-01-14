@@ -137,8 +137,22 @@ class GPXPeakTrack extends GPXTrack {
     this.peakCoordinates = peakCoordinates;
     this.findClosestPointToPeak();
     // Split track at peak
-    this.toPeakTrack = new GPXTrack(this.trackPoints.slice(0, this.peakIndex));
-    this.fromPeakTrack = new GPXTrack(this.trackPoints.slice(this.peakIndex));
+    let toPeakPoints, fromPeakPoints;
+    if (this.peakIndex === 0) {
+      // If peakIndex is at the start, ensure minimum 2 elements in both tracks
+      toPeakPoints = this.trackPoints.slice(0, 2);
+      fromPeakPoints = this.trackPoints.slice(0);
+    } else if (this.peakIndex === this.trackPoints.length - 1) {
+      // If peakIndex is at the end, ensure minimum 2 elements in both tracks
+      toPeakPoints = this.trackPoints.slice(0);
+      fromPeakPoints = this.trackPoints.slice(this.peakIndex - 1);
+    } else {
+      // Normal case, split the array into two parts including peakIndex
+      toPeakPoints = this.trackPoints.slice(0, this.peakIndex + 1);
+      fromPeakPoints = this.trackPoints.slice(this.peakIndex);
+    }
+    this.toPeakTrack = new GPXTrack(toPeakPoints);
+    this.fromPeakTrack = new GPXTrack(fromPeakPoints);
   }
 
   static fromGpxDocXml(gpxDocXml) {
