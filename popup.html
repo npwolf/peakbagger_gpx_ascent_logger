@@ -169,6 +169,16 @@
         width: auto !important; /* Override the default full width */
         white-space: nowrap;
       }
+
+      #points-reduction {
+        margin: 10px 0;
+        padding: 8px 12px;
+        background-color: #e7f3fe;
+        border: 1px solid #b6d4fe;
+        border-radius: 4px;
+        color: #084298;
+        font-size: 0.9em;
+      }
     </style>
   </head>
   <body>
@@ -194,6 +204,7 @@
           accept=".gpx"
           style="display: none"
         />
+        <div id="points-reduction" class="hidden"></div>
       </div>
 
       <div id="mode-selection" class="hidden">

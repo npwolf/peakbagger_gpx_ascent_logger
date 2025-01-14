@@ -207,7 +207,7 @@ class GPXTrackReducer {
       console.log(
         `GPX track has ${this.gpxTrack.trackPoints.length} points, which is already less than the target of ${targetPointsLen}.`
       );
-      return;
+      return false;
     }
     // More efficient Ramer-Douglas-Peucker algorithm
     let points = this.rdp(this.gpxTrack.trackPoints, 0.00001); // Epsilon value, adjust as needed
@@ -228,6 +228,7 @@ class GPXTrackReducer {
       `Reduced GPX track from ${this.gpxTrack.trackPoints.length} to ${points.length} points.`
     );
     this.update(points);
+    return true;
   }
 
   update(newPoints) {
@@ -406,3 +407,4 @@ function getPointsFromGpxXml(gpxDocXml) {
 
 window.GPXTrack = GPXTrack;
 window.GPXPeakTrack = GPXPeakTrack;
+window.GPXTrackReducer = GPXTrackReducer;

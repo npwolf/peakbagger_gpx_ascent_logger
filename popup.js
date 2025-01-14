@@ -1,7 +1,9 @@
-/* global GPXTrack */
 /* global GPXPeakTrack */
+/* global GPXTrackReducer */
 let userId = null;
 let gpxDocText = null;
+let gpxTrack = null;
+const MAX_PEAKBAGGER_GPX_POINTS = 3000;
 
 document.addEventListener("DOMContentLoaded", () => {
   checkLoginStatus();
@@ -39,6 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function handleFileSelection() {
+  document.getElementById("points-reduction").classList.add("hidden");
   const fileInput = document.getElementById("gpx-file-input");
   fileInput.onchange = async (event) => {
     const file = event.target.files[0];
@@ -46,6 +49,21 @@ function handleFileSelection() {
       const reader = new FileReader();
       reader.onload = async (e) => {
         gpxDocText = e.target.result;
+        const parser = new DOMParser();
+        let gpxDocXml = parser.parseFromString(gpxDocText, "text/xml");
+        const gpxTrackReducer = new GPXTrackReducer(gpxDocXml);
+        const trackPointsBefore = gpxTrackReducer.gpxTrack.trackPoints.length;
+        if (gpxTrackReducer.reduceGPXTrack(MAX_PEAKBAGGER_GPX_POINTS)) {
+          const reductionMessage = `Smoothed GPX track to reduce points from ${trackPointsBefore} to ${gpxTrackReducer.gpxTrack.trackPoints.length}. Peakbagger does not allow more than that.`;
+          document.getElementById("points-reduction").textContent =
+            reductionMessage;
+          document
+            .getElementById("points-reduction")
+            .classList.remove("hidden");
+          console.log(reductionMessage);
+        }
+        gpxDocXml = gpxTrackReducer.gpxDocXml;
+        gpxTrack = gpxTrackReducer.gpxTrack;
         const selectedFile = document.getElementById("selected-file");
         selectedFile.textContent = file.name;
         selectedFile.classList.remove("hidden");
@@ -95,11 +113,8 @@ async function autoDetectPeaks() {
     if (!gpxDocText) return;
 
     document.getElementById("loading-peaks").classList.remove("hidden");
-    const parser = new DOMParser();
-    const gpxDocXml = parser.parseFromString(gpxDocText, "text/xml");
-    const gpxTrack = GPXTrack.fromGpxDocXml(gpxDocXml);
-    const peaks = await getNearbyPeaksFromGpxDocXml(gpxDocXml);
-    const sortedPeaks = await getPeaksOnTrack(peaks, gpxTrack);
+    const peaks = await getNearbyPeaks();
+    const sortedPeaks = await getPeaksOnTrack(peaks);
     for (const peak of sortedPeaks) {
       console.log(
         `Peak: ${peak.name}, Distance: ${peak.gpxPeakTrack.closestDistanceFtToPeak}`
@@ -113,8 +128,7 @@ async function autoDetectPeaks() {
   }
 }
 
-async function getNearbyPeaksFromGpxDocXml(gpxDocXml) {
-  const gpxTrack = GPXTrack.fromGpxDocXml(gpxDocXml);
+async function getNearbyPeaks() {
   const midPoint = gpxTrack.roughMidPoint;
   try {
     const response = await chrome.runtime.sendMessage({
@@ -137,7 +151,7 @@ async function getNearbyPeaksFromGpxDocXml(gpxDocXml) {
   }
 }
 
-async function getPeaksOnTrack(peaks, gpxTrack) {
+async function getPeaksOnTrack(peaks) {
   const startTime = performance.now();
   const peakMap = new Map();
   for (const peak of peaks) {
