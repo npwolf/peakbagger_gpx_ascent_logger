@@ -73,8 +73,10 @@ function displayPeakList(sortedPeaks) {
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
-    checkbox.id = peak.peakId; // Use peakId instead of id
-    checkbox.value = JSON.stringify(peak);
+    console.log("checkbox peak", peak);
+    checkbox.dataset.id = peak.peakId;
+    checkbox.dataset.lat = peak.gpxPeakTrack.peakCoordinates.lat;
+    checkbox.dataset.lon = peak.gpxPeakTrack.peakCoordinates.lon;
     checkbox.checked = true; // Default to checked
 
     const label = document.createElement("label");
@@ -231,11 +233,9 @@ async function openAscentTabs() {
   );
   let peaks = [];
   checkboxes.forEach((checkbox) => {
-    const peakData = JSON.parse(checkbox.value);
-    console.log("Peak data:", peakData);
     const peak = {
-      peakId: peakData.peakId,
-      peakCoordinates: peakData.gpsPeakTrack.peakCoordinates,
+      peakId: checkbox.dataset.id,
+      peakCoordinates: { lat: checkbox.dataset.lat, lon: checkbox.dataset.lon },
     };
     console.log("Adding peak to array:", peak);
     peaks.push(peak);
