@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   checkLoginStatus();
   document.getElementById("login-button").addEventListener("click", () => {
     chrome.tabs.create({
-      url: "https://www.peakbagger.com/Climber/Login.aspx",
+      url: "https://peakbagger.com/Climber/Login.aspx",
     });
   });
 
@@ -209,7 +209,7 @@ function updateLoginSections(isLoggedIn) {
 
 async function checkLoginStatus() {
   try {
-    const response = await fetch("https://www.peakbagger.com/Default.aspx");
+    const response = await fetch("https://peakbagger.com/Default.aspx");
     const text = await response.text();
     const match = text.match(
       /href="climber\/climber\.aspx\?cid=(\d+)">My Home Page<\/a>/
