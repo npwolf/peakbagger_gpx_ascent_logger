@@ -278,6 +278,11 @@ function setupManualSearch() {
   document
     .getElementById("draft-manual-ascent")
     .addEventListener("click", draftManualAscent);
+  document.getElementById("peak-search").addEventListener("keyup", (event) => {
+    if (event.key === "Enter") {
+      searchPeaks();
+    }
+  });
 }
 
 async function searchPeaks() {
