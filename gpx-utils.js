@@ -132,34 +132,59 @@ class GPXTrack {
 /* eslint-disable-next-line no-unused-vars */
 class GPXPeakTrack extends GPXTrack {
   #closestDistanceFtToPeak = null;
+  #peakIndex = null;
+  #toPeakTrack = null;
+  #fromPeakTrack = null;
+  #closestPoint = null;
 
   constructor(points, peakCoordinates) {
     console.log("GPXPeakTrack points", points.length);
     super(points);
     this.peakCoordinates = peakCoordinates;
-    this.findClosestPointToPeak();
-    // Split track at peak
-    let toPeakPoints, fromPeakPoints;
-    if (this.peakIndex === 0) {
-      // If peakIndex is at the start, ensure minimum 2 elements in both tracks
-      toPeakPoints = this.trackPoints.slice(0, 2);
-      fromPeakPoints = this.trackPoints.slice(0);
-    } else if (this.peakIndex === this.trackPoints.length - 1) {
-      // If peakIndex is at the end, ensure minimum 2 elements in both tracks
-      toPeakPoints = this.trackPoints.slice(0);
-      fromPeakPoints = this.trackPoints.slice(this.peakIndex - 1);
-    } else {
-      // Normal case, split the array into two parts including peakIndex
-      toPeakPoints = this.trackPoints.slice(0, this.peakIndex + 1);
-      fromPeakPoints = this.trackPoints.slice(this.peakIndex);
-    }
-    this.toPeakTrack = new GPXTrack(toPeakPoints);
-    this.fromPeakTrack = new GPXTrack(fromPeakPoints);
   }
 
-  static fromGpxDocXml(gpxDocXml) {
-    const gpxPeakTrack = new GPXPeakTrack(getPointsFromGpxXml(gpxDocXml));
-    return gpxPeakTrack;
+  get peakIndex() {
+    if (this.#peakIndex === null) {
+      this.findClosestPointToPeak();
+    }
+    return this.#peakIndex;
+  }
+
+  get closestPoint() {
+    if (this.#closestPoint === null) {
+      this.findClosestPointToPeak();
+    }
+    return this.#closestPoint;
+  }
+
+  get toPeakTrack() {
+    if (this.#toPeakTrack === null) {
+      if (this.peakIndex === 0) {
+        // If peakIndex is at the start, ensure minimum 2 elements
+        this.#toPeakTrack = new GPXTrack(this.trackPoints.slice(0, 2));
+      } else {
+        this.#toPeakTrack = new GPXTrack(
+          this.trackPoints.slice(0, this.peakIndex + 1)
+        );
+      }
+    }
+    return this.#toPeakTrack;
+  }
+
+  get fromPeakTrack() {
+    if (this.#fromPeakTrack === null) {
+      if (this.peakIndex === this.trackPoints.length - 1) {
+        // If peakIndex is at the end, ensure minimum 2 elements
+        this.#fromPeakTrack = new GPXTrack(
+          this.trackPoints.slice(this.peakIndex - 1)
+        );
+      } else {
+        this.#fromPeakTrack = new GPXTrack(
+          this.trackPoints.slice(this.peakIndex)
+        );
+      }
+    }
+    return this.#fromPeakTrack;
   }
 
   get closestDistanceFtToPeak() {
@@ -181,8 +206,8 @@ class GPXPeakTrack extends GPXTrack {
       this.peakCoordinates.lat,
       this.peakCoordinates.lon
     );
-    this.closestPoint = result.point;
-    this.peakIndex = result.index;
+    this.#closestPoint = result.point;
+    this.#peakIndex = result.index;
   }
 
   findClosestPointToCoordinates(targetLat, targetLon) {
