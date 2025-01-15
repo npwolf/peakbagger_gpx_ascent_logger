@@ -116,7 +116,7 @@ function displayAutoDetectedPeaks(sortedPeaks) {
   });
 
   peakContainers.appendChild(peakList);
-  document.getElementById("loading-peaks").classList.add("hidden");
+  document.getElementById("loading").classList.add("hidden");
   document.getElementById("peak-selection").classList.remove("hidden");
 }
 
@@ -125,7 +125,7 @@ async function autoDetectPeaks() {
     console.log("Autodetecting peaks");
     if (!gpxDocText) return;
 
-    document.getElementById("loading-peaks").classList.remove("hidden");
+    document.getElementById("loading").classList.remove("hidden");
     const peaks = await getNearbyPeaks();
     const sortedPeaks = await getPeaksOnTrack(peaks);
     for (const peak of sortedPeaks) {
@@ -274,18 +274,20 @@ async function openAscentTabs() {
 function setupManualSearch() {
   document
     .getElementById("search-peaks-button")
-    .addEventListener("click", searchPeaks);
+    .addEventListener("click", searchPeaksManual);
   document
     .getElementById("draft-manual-ascent")
     .addEventListener("click", draftManualAscent);
   document.getElementById("peak-search").addEventListener("keyup", (event) => {
     if (event.key === "Enter") {
-      searchPeaks();
+      searchPeaksManual();
     }
   });
 }
 
-async function searchPeaks() {
+async function searchPeaksManual() {
+  document.getElementById("search-results").classList.add("hidden");
+  document.getElementById("loading").classList.remove("hidden");
   const searchText = document.getElementById("peak-search").value;
   if (!searchText) return;
 
@@ -302,6 +304,8 @@ async function searchPeaks() {
     }
 
     const peaks = await parsePBPeaksResponse(response.peaksText);
+    document.getElementById("loading").classList.add("hidden");
+    document.getElementById("search-results").classList.remove("hidden");
     displaySearchResults(peaks);
   } catch (error) {
     console.error("Error during peak search:", error);

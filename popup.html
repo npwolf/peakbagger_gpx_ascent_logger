@@ -98,7 +98,7 @@
         padding: 20px;
       }
 
-      #loading-peaks {
+      #loading {
         text-align: center;
         margin-top: 10px;
         color: #000000;
@@ -227,10 +227,6 @@
           Auto-detection will analyze your track and find possible peaks that
           you've reached.
         </p>
-        <div id="loading-peaks" class="hidden">
-          Loading Peaks...
-          <div class="spinner"></div>
-        </div>
       </div>
 
       <div id="manual-search" class="hidden">
@@ -241,9 +237,11 @@
             <input type="text" id="peak-search" class="search-input">
             <button id="search-peaks-button">Search</button>
           </div>
-          <select id="peak-results" size="5" style="width: 100%; margin-top: 10px;">
-          </select>
-          <button id="draft-manual-ascent">Draft New Ascent in New Tab</button>
+          <div id="search-results" class="hidden">
+            <select id="peak-results" size="5" style="width: 100%; margin-top: 10px;">
+            </select>
+            <button id="draft-manual-ascent">Draft New Ascent in New Tab</button>
+          </div>
         </div>
       </div>
 
@@ -253,7 +251,14 @@
         <button id="draft-ascents">Open Tabs with Drafted Ascents</button>
       </div>
     </div>
+
+    <div id="loading" class="hidden">
+      Loading...
+      <div class="spinner"></div>
+    </div>
+
     <div id="error-message" class="hidden"></div>
+
     <script src="gpx-utils.js" type="module"></script>
     <script src="popup.js" type="module"></script>
   </body>
