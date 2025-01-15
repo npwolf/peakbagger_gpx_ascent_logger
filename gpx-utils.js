@@ -405,11 +405,11 @@ function getPointsFromGpxXml(gpxDocXml) {
     const datetime = pt.querySelector("time")?.textContent;
     if (!elevation)
       throw new Error(
-        "Track point missing elevation data. Add elevation data to track with <a href=\"https://www.gpsvisualizer.com/elevation\">https://www.gpsvisualizer.com/elevation</a>"
+        "Track point missing elevation data. Add elevation data to track with https://www.gpsvisualizer.com/elevation"
       );
     if (!datetime)
       throw new Error(
-        "Track point missing timestamp data. Add timestamp data to track with <a href=\"https://gotoes.org/strava/Add_Timestamps_To_GPX.php\">ttps://gotoes.org/strava/Add_Timestamps_To_GPX.php</a>"
+        "Track point missing timestamp data. Add timestamp data to track with https://gotoes.org/strava/Add_Timestamps_To_GPX.php"
       );
     return {
       lat: parseFloat(pt.getAttribute("lat")),

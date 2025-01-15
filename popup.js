@@ -156,7 +156,7 @@ async function getNearbyPeaks() {
       alert("Failed to fetch nearby peaks from Peakbagger!");
       return [];
     }
-    const nearbyPeaks = await parseNearbyPeaksResponse(response.peaksText);
+    const nearbyPeaks = await parsePBPeaksResponse(response.peaksText);
     return nearbyPeaks;
   } catch (error) {
     console.error("Error fetching nearby peaks:", error);
@@ -194,13 +194,12 @@ async function getPeaksOnTrack(peaks) {
   return sortedPeaks;
 }
 
-async function parseNearbyPeaksResponse(text) {
+async function parsePBPeaksResponse(text) {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(text, "text/xml");
   const pbElement = xmlDoc.getElementsByTagName("pb")[0];
   if (!pbElement) {
-    alert("Unexpected results from peak search. Try again later.");
-    return [];
+    new Error("Unexpected results from peak search. Try again later.");
   }
 
   // Convert XML to array of peak objects
@@ -212,9 +211,7 @@ async function parseNearbyPeaksResponse(text) {
     elevationFt: parseInt(peak.getAttribute("f")),
     lat: parseFloat(peak.getAttribute("a")),
     lon: parseFloat(peak.getAttribute("o")),
-    //unknown: parseInt(peak.getAttribute("t")),
     prominence: parseInt(peak.getAttribute("r")),
-    // unknown: parseFloat(peak.getAttribute("s")),
     location: peak.getAttribute("l"),
   }));
   return peaks;
@@ -299,30 +296,11 @@ async function searchPeaks() {
       return;
     }
 
-    const peaks = parseSearchResults(response.peaksText);
+    const peaks = await parsePBPeaksResponse(response.peaksText);
     displaySearchResults(peaks);
   } catch (error) {
     console.error("Error during peak search:", error);
   }
-}
-
-function parseSearchResults(text) {
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(text, "text/xml");
-  // Check for <pb> element
-  const pbElement = xmlDoc.getElementsByTagName("pb")[0];
-  if (!pbElement) {
-    alert("Unexpected results from peak search. Try again later.");
-    return [];
-  }
-  return Array.from(xmlDoc.getElementsByTagName("r")).map((peak) => ({
-    id: peak.getAttribute("i"),
-    name: peak.getAttribute("n"),
-    elevation: peak.getAttribute("f"),
-    location: peak.getAttribute("l"),
-    lat: peak.getAttribute("a"),
-    lon: peak.getAttribute("o"),
-  }));
 }
 
 function displaySearchResults(peaks) {
@@ -332,7 +310,7 @@ function displaySearchResults(peaks) {
   peaks.forEach((peak) => {
     const option = document.createElement("option");
     option.value = JSON.stringify(peak);
-    option.textContent = `${peak.name}, ${peak.location} (${peak.elevation}')`;
+    option.textContent = `${peak.name}, ${peak.location} (${peak.elevationFt}')`;
     select.appendChild(option);
   });
 }
