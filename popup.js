@@ -75,7 +75,7 @@ function handleFileSelection() {
   fileInput.click();
 }
 
-function displayPeakList(sortedPeaks) {
+function displayAutoDetectedPeaks(sortedPeaks) {
   const peakContainers = document.getElementById("peak-containers");
   peakContainers.innerHTML = ""; // Clear existing content
 
@@ -121,7 +121,7 @@ async function autoDetectPeaks() {
       );
     }
 
-    displayPeakList(sortedPeaks);
+    displayAutoDetectedPeaks(sortedPeaks);
   } catch (error) {
     console.error("Error autodetecting peaks:", error);
     alert("Error autodetecting peaks. Please try again.");
