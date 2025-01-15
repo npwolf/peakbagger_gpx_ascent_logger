@@ -131,6 +131,11 @@ class GPXTrack {
  */
 /* eslint-disable-next-line no-unused-vars */
 class GPXPeakTrack extends GPXTrack {
+  id = null;
+  name = null;
+  elevationFt = null;
+  prominence = null;
+  location = null;
   #closestDistanceFtToPeak = null;
   #peakIndex = null;
   #toPeakTrack = null;
