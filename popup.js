@@ -47,32 +47,45 @@ function handleFileSelection() {
     const file = event.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = async (e) => {
-        gpxDocText = e.target.result;
-        const parser = new DOMParser();
-        let gpxDocXml = parser.parseFromString(gpxDocText, "text/xml");
-        const gpxTrackReducer = new GPXTrackReducer(gpxDocXml);
-        const trackPointsBefore = gpxTrackReducer.gpxTrack.trackPoints.length;
-        if (gpxTrackReducer.reduceGPXTrack(MAX_PEAKBAGGER_GPX_POINTS)) {
-          const reductionMessage = `Smoothed GPX track to reduce points from ${trackPointsBefore} to ${gpxTrackReducer.gpxTrack.trackPoints.length}. Peakbagger does not allow more than that.`;
-          document.getElementById("points-reduction").textContent =
-            reductionMessage;
-          document
-            .getElementById("points-reduction")
-            .classList.remove("hidden");
-          console.log(reductionMessage);
-        }
-        gpxDocXml = gpxTrackReducer.gpxDocXml;
-        gpxTrack = gpxTrackReducer.gpxTrack;
-        const selectedFile = document.getElementById("selected-file");
-        selectedFile.textContent = file.name;
-        selectedFile.classList.remove("hidden");
-        document.getElementById("mode-selection").classList.remove("hidden");
-      };
+      const fileName = file.name;
+      reader.onload = (e) => handleFileLoad(e.target.result, fileName);
       reader.readAsText(file);
     }
   };
   fileInput.click();
+}
+
+async function handleFileLoad(content, fileName) {
+  try {
+    document.getElementById("error-message").classList.add("hidden");
+    document.getElementById("mode-selection").classList.add("hidden");
+    document.getElementById("peak-selection").classList.add("hidden");
+    document.getElementById("manual-search").classList.add("hidden");
+    gpxDocText = content;
+    const parser = new DOMParser();
+    let gpxDocXml = parser.parseFromString(gpxDocText, "text/xml");
+    const gpxTrackReducer = new GPXTrackReducer(gpxDocXml);
+    const trackPointsBefore = gpxTrackReducer.gpxTrack.trackPoints.length;
+    if (gpxTrackReducer.reduceGPXTrack(MAX_PEAKBAGGER_GPX_POINTS)) {
+      const reductionMessage = `Smoothed GPX track to reduce points from ${trackPointsBefore} to ${gpxTrackReducer.gpxTrack.trackPoints.length}. Peakbagger does not allow more than that.`;
+      document.getElementById("points-reduction").textContent =
+        reductionMessage;
+      document.getElementById("points-reduction").classList.remove("hidden");
+      console.log(reductionMessage);
+    }
+    gpxDocXml = gpxTrackReducer.gpxDocXml;
+    gpxTrack = gpxTrackReducer.gpxTrack;
+    const selectedFile = document.getElementById("selected-file");
+    selectedFile.textContent = fileName;
+    selectedFile.classList.remove("hidden");
+    document.getElementById("mode-selection").classList.remove("hidden");
+  } catch (error) {
+    console.error("Error parsing GPX file:", error);
+    document.getElementById(
+      "error-message"
+    ).textContent = `Error: ${error.message}`;
+    document.getElementById("error-message").classList.remove("hidden");
+  }
 }
 
 function displayAutoDetectedPeaks(sortedPeaks) {

@@ -19,6 +19,8 @@ class GPXTrack {
     this.trackPoints = points;
     if (!this.trackPoints.length) {
       throw new Error("No track points found in GPX file");
+    } else if (this.trackPoints.length === 1) {
+      throw new Error("Only one track point found in GPX file.");
     }
     this.firstPoint = this.trackPoints[0];
     this.lastPoint = this.trackPoints[this.trackPoints.length - 1];
@@ -403,11 +405,11 @@ function getPointsFromGpxXml(gpxDocXml) {
     const datetime = pt.querySelector("time")?.textContent;
     if (!elevation)
       throw new Error(
-        "Track point missing elevation data. Add elevation data to track with https://www.gpsvisualizer.com/elevation"
+        "Track point missing elevation data. Add elevation data to track with <a href=\"https://www.gpsvisualizer.com/elevation\">https://www.gpsvisualizer.com/elevation</a>"
       );
     if (!datetime)
       throw new Error(
-        "Track point missing timestamp data. Add timestamp data to track"
+        "Track point missing timestamp data. Add timestamp data to track with <a href=\"https://gotoes.org/strava/Add_Timestamps_To_GPX.php\">ttps://gotoes.org/strava/Add_Timestamps_To_GPX.php</a>"
       );
     return {
       lat: parseFloat(pt.getAttribute("lat")),

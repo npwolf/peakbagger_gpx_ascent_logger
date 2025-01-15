@@ -179,6 +179,16 @@
         color: #084298;
         font-size: 0.9em;
       }
+
+      #error-message {
+        margin: 10px 0;
+        padding: 8px 12px;
+        background-color: #e7f3fe;
+        border: 1px solid #b6d4fe;
+        border-radius: 4px;
+        color: #980808;
+        font-size: 0.9em;
+      }
     </style>
   </head>
   <body>
@@ -243,7 +253,7 @@
         <button id="draft-ascents">Open Tabs with Drafted Ascents</button>
       </div>
     </div>
-
+    <div id="error-message" class="hidden"></div>
     <script src="gpx-utils.js" type="module"></script>
     <script src="popup.js" type="module"></script>
   </body>
