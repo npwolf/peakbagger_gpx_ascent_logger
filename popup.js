@@ -166,25 +166,18 @@ async function getNearbyPeaks() {
 
 async function getPeaksOnTrack(peaks) {
   const startTime = performance.now();
-  const peakMap = new Map();
-  for (const peak of peaks) {
-    const peakCoordinates = { lat: peak.lat, lon: peak.lon };
-    console.log("Track Points:", gpxTrack.trackPoints.length);
-    const gpxPeakTrack = new GPXPeakTrack(
-      gpxTrack.trackPoints,
-      peakCoordinates
-    );
-    if (gpxPeakTrack.closestDistanceFtToPeak < 500) {
-      peakMap.set(peak, gpxPeakTrack);
-    }
-  }
-  // Create sorted array of peaks by closest distance
-  const sortedPeaks = Array.from(peakMap.entries())
-    .sort((a, b) => a[1].closestDistanceFtToPeak - b[1].closestDistanceFtToPeak)
-    .map(([peak, gpxPeakTrack]) => ({
+  // Filter peaks by distance
+  const nearbyPeaks = peaks.filter(
+    (peak) => peak.closestDistanceFtToPeak < 500
+  );
+
+  // Sort peaks by closest distance
+  const sortedPeaks = nearbyPeaks
+    .sort((a, b) => a.closestDistanceFtToPeak - b.closestDistanceFtToPeak)
+    .map((peak) => ({
       name: `${peak.name}, ${peak.location} (${peak.elevationFt}')`,
       peakId: peak.id,
-      gpxPeakTrack: gpxPeakTrack,
+      gpxPeakTrack: peak,
     }));
 
   const endTime = performance.now();
@@ -202,18 +195,23 @@ async function parsePBPeaksResponse(text) {
     new Error("Unexpected results from peak search. Try again later.");
   }
 
-  // Convert XML to array of peak objects
-  // Example row:
-  // 	<r i="21582" n="Lone Mountain" f="3342" a="36.238156" o="-115.315186" t="410" r="542" s="2.24" l="USA-NV" lkvp="1*48349|2*154811|6*W7N/CK-227|9*841766"/>
-  const peaks = Array.from(xmlDoc.getElementsByTagName("r")).map((peak) => ({
-    id: parseInt(peak.getAttribute("i")),
-    name: peak.getAttribute("n"),
-    elevationFt: parseInt(peak.getAttribute("f")),
-    lat: parseFloat(peak.getAttribute("a")),
-    lon: parseFloat(peak.getAttribute("o")),
-    prominence: parseInt(peak.getAttribute("r")),
-    location: peak.getAttribute("l"),
-  }));
+  // Convert XML to array of GPXPeakTrack objects
+  const peaks = Array.from(xmlDoc.getElementsByTagName("r")).map((pbRow) => {
+    const lat = parseFloat(pbRow.getAttribute("a"));
+    const lon = parseFloat(pbRow.getAttribute("o"));
+
+    // Create new GPXPeakTrack with track points and peak coordinates
+    const peakTrack = new GPXPeakTrack(gpxTrack.trackPoints, { lat, lon });
+
+    // Add peak metadata
+    peakTrack.id = parseInt(pbRow.getAttribute("i"));
+    peakTrack.name = pbRow.getAttribute("n");
+    peakTrack.elevationFt = parseInt(pbRow.getAttribute("f"));
+    peakTrack.prominence = parseInt(pbRow.getAttribute("r"));
+    peakTrack.location = pbRow.getAttribute("l");
+
+    return peakTrack;
+  });
   return peaks;
 }
 
@@ -316,10 +314,18 @@ function displaySearchResults(peaks) {
   const select = document.getElementById("peak-results");
   select.innerHTML = "";
 
+  // Sort peaks by closest distance to track
+  peaks.sort((a, b) => a.closestDistanceFtToPeak - b.closestDistanceFtToPeak);
+
   peaks.forEach((peak) => {
     const option = document.createElement("option");
-    option.value = JSON.stringify(peak);
-    option.textContent = `${peak.name}, ${peak.location} (${peak.elevationFt}')`;
+    option.value = JSON.stringify({
+      id: peak.id,
+      lat: peak.peakCoordinates.lat,
+      lon: peak.peakCoordinates.lon,
+    });
+    const miles = (peak.closestDistanceFtToPeak / 5280).toFixed(2);
+    option.textContent = `${peak.name}, ${peak.location} (${peak.elevationFt}') - ${miles}mi from track`;
     select.appendChild(option);
   });
 }
