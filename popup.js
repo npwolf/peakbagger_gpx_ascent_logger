@@ -3,6 +3,7 @@
 let userId = null;
 let gpxDocText = null;
 let gpxTrack = null;
+let id2GpxPeakTrack = new Map();
 const MAX_PEAKBAGGER_GPX_POINTS = 3000;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -88,33 +89,39 @@ async function handleFileLoad(content, fileName) {
   }
 }
 
-function displayAutoDetectedPeaks(sortedPeaks) {
+function displayAutoDetectedPeaks(peaks) {
   const peakContainers = document.getElementById("peak-containers");
   peakContainers.innerHTML = ""; // Clear existing content
 
   const peakList = document.createElement("ul");
   peakList.className = "peak-list";
 
+  // Sort peaks by closest distance - remove the map operation
+  const sortedPeaks = peaks.sort(
+    (a, b) => a.closestDistanceFtToPeak - b.closestDistanceFtToPeak
+  );
+  id2GpxPeakTrack.clear();
   sortedPeaks.forEach((peak) => {
+    id2GpxPeakTrack.set(peak.id, peak);
     const listItem = document.createElement("li");
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
-    console.log("checkbox peak", peak);
-    checkbox.dataset.id = peak.peakId;
-    checkbox.dataset.lat = peak.gpxPeakTrack.peakCoordinates.lat;
-    checkbox.dataset.lon = peak.gpxPeakTrack.peakCoordinates.lon;
-    checkbox.checked = true; // Default to checked
-
+    const checkboxId = `auto-${peak.id}`; // Create an ID
+    checkbox.id = checkboxId; // Assign ID to checkbox
+    checkbox.dataset.peakId = checkboxId;
+    checkbox.checked = true;
     const label = document.createElement("label");
-    label.htmlFor = peak.peakId;
-    label.textContent = peak.name;
+    label.htmlFor = checkboxId;
+    checkbox.checked = true; // Default to checked
+    const miles = (peak.closestDistanceFtToPeak / 5280).toFixed(2);
+    label.textContent = `${peak.name}, ${peak.location} (${peak.elevationFt}') - ${miles}mi from track`;
 
     listItem.appendChild(checkbox);
     listItem.appendChild(label);
     peakList.appendChild(listItem);
   });
-
+  console.log("id2GpxPeakTrack:", id2GpxPeakTrack);
   peakContainers.appendChild(peakList);
   document.getElementById("loading").classList.add("hidden");
   document.getElementById("peak-selection").classList.remove("hidden");
@@ -126,15 +133,8 @@ async function autoDetectPeaks() {
     if (!gpxDocText) return;
 
     document.getElementById("loading").classList.remove("hidden");
-    const peaks = await getNearbyPeaks();
-    const sortedPeaks = await getPeaksOnTrack(peaks);
-    for (const peak of sortedPeaks) {
-      console.log(
-        `Peak: ${peak.name}, Distance: ${peak.gpxPeakTrack.closestDistanceFtToPeak}`
-      );
-    }
-
-    displayAutoDetectedPeaks(sortedPeaks);
+    const nearbyPeaks = await getNearbyPeaks();
+    displayAutoDetectedPeaks(nearbyPeaks);
   } catch (error) {
     console.error("Error autodetecting peaks:", error);
     alert("Error autodetecting peaks. Please try again.");
@@ -157,34 +157,15 @@ async function getNearbyPeaks() {
       return [];
     }
     const nearbyPeaks = await parsePBPeaksResponse(response.peaksText);
-    return nearbyPeaks;
+    // Filter peaks by distance
+    const filteredNearbyPeaks = nearbyPeaks.filter(
+      (peak) => peak.closestDistanceFtToPeak < 500
+    );
+    return filteredNearbyPeaks;
   } catch (error) {
     console.error("Error fetching nearby peaks:", error);
     throw new Error("Failed to fetch nearby peaks");
   }
-}
-
-async function getPeaksOnTrack(peaks) {
-  const startTime = performance.now();
-  // Filter peaks by distance
-  const nearbyPeaks = peaks.filter(
-    (peak) => peak.closestDistanceFtToPeak < 500
-  );
-
-  // Sort peaks by closest distance
-  const sortedPeaks = nearbyPeaks
-    .sort((a, b) => a.closestDistanceFtToPeak - b.closestDistanceFtToPeak)
-    .map((peak) => ({
-      name: `${peak.name}, ${peak.location} (${peak.elevationFt}')`,
-      peakId: peak.id,
-      gpxPeakTrack: peak,
-    }));
-
-  const endTime = performance.now();
-  console.log(
-    `getPeaksToTracks took ${((endTime - startTime) / 1000).toFixed(2)} seconds`
-  );
-  return sortedPeaks;
 }
 
 async function parsePBPeaksResponse(text) {
@@ -251,20 +232,25 @@ async function openAscentTabs() {
   );
   if (!gpxDocText) return;
 
-  let peaks = [];
+  let peaksData = [];
   checkboxes.forEach((checkbox) => {
-    const peak = {
-      peakId: checkbox.dataset.id,
-      peakCoordinates: { lat: checkbox.dataset.lat, lon: checkbox.dataset.lon },
+    console.log("Checkbox peakId:", checkbox);
+    const peakId = parseInt(checkbox.id.replace("auto-", ""));
+    const peak = id2GpxPeakTrack.get(peakId);
+    const peakData = {
+      id: peakId,
+      peakCoordinates: peak.peakCoordinates,
+      trackPoints: peak.trackPoints,
+      gpxContent: gpxDocText,
     };
     console.log("Adding peak to array:", peak);
-    peaks.push(peak);
+    peaksData.push(peakData);
   });
 
   await chrome.runtime.sendMessage({
     action: "draftMultiplePBAscents",
     gpxContent: gpxDocText,
-    peaks: peaks,
+    peaksData: peaksData,
     userId: userId,
   });
 }
@@ -303,27 +289,25 @@ async function searchPeaksManual() {
 
     const peaks = await parsePBPeaksResponse(response.peaksText);
     document.getElementById("loading").classList.add("hidden");
+    displayManualSearchResults(peaks);
     document.getElementById("search-results").classList.remove("hidden");
-    displaySearchResults(peaks);
   } catch (error) {
     console.error("Error during peak search:", error);
   }
 }
 
-function displaySearchResults(peaks) {
+function displayManualSearchResults(peaks) {
   const select = document.getElementById("peak-results");
   select.innerHTML = "";
 
   // Sort peaks by closest distance to track
   peaks.sort((a, b) => a.closestDistanceFtToPeak - b.closestDistanceFtToPeak);
 
+  id2GpxPeakTrack = new Map();
   peaks.forEach((peak) => {
     const option = document.createElement("option");
-    option.value = JSON.stringify({
-      id: peak.id,
-      lat: peak.peakCoordinates.lat,
-      lon: peak.peakCoordinates.lon,
-    });
+    id2GpxPeakTrack.set(peak.id, peak);
+    option.id = `manual-${peak.id}`;
     const miles = (peak.closestDistanceFtToPeak / 5280).toFixed(2);
     option.textContent = `${peak.name}, ${peak.location} (${peak.elevationFt}') - ${miles}mi from track`;
     select.appendChild(option);
@@ -335,13 +319,18 @@ async function draftManualAscent() {
   const selectedOption = select.options[select.selectedIndex];
   if (!selectedOption || !gpxDocText) return;
 
-  const peak = JSON.parse(selectedOption.value);
+  const peakId = parseInt(selectedOption.id.replace("manual-", ""));
+  const peak = id2GpxPeakTrack.get(peakId);
 
+  const peakData = {
+    id: peakId,
+    peakCoordinates: peak.peakCoordinates,
+    trackPoints: peak.trackPoints,
+    gpxContent: gpxDocText,
+  };
   await chrome.runtime.sendMessage({
     action: "draftPBAscent",
-    gpxContent: gpxDocText,
-    peakId: peak.id,
-    peakCoordinates: { lat: peak.lat, lon: peak.lon },
     userId: userId,
+    peakData: peakData,
   });
 }

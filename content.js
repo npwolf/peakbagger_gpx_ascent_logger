@@ -1,4 +1,3 @@
-/* global GPXTrackReducer */
 /* global GPXPeakTrack */
 window.contentScriptLoaded = true;
 console.log("Content script loaded");
@@ -6,18 +5,14 @@ console.log("Content script loaded");
 // Remove the DOMContentLoaded listener and check immediately
 checkForStoredNotification();
 
-const MAX_PEAKBAGGER_GPX_POINTS = 3000;
-
 chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
   console.log("Message received:", request);
   if (request.action === "processGPXContent") {
-    const parser = new DOMParser();
-    const gpxDocXml = parser.parseFromString(request.gpxContent, "text/xml");
-    processGPXData(gpxDocXml, request.gpxCoordinates);
+    processGPXData(request.peakData);
   }
 });
 
-async function processGPXData(gpxDocXml, peakCoordinates) {
+async function processGPXData(peakData) {
   try {
     // Check if we're on an ascent page
     if (!document.body.textContent.includes("Ascent of")) {
@@ -25,17 +20,17 @@ async function processGPXData(gpxDocXml, peakCoordinates) {
       return;
     }
 
-    // Create a file from the GPX document
-    const gpxTrackReducer = new GPXTrackReducer(gpxDocXml);
-    gpxTrackReducer.reduceGPXTrack(MAX_PEAKBAGGER_GPX_POINTS);
-    gpxDocXml = gpxTrackReducer.gpxDocXml;
-
-    console.log("processGPXData: Peak coordinates:", peakCoordinates);
-    const track = new GPXPeakTrack(
-      gpxTrackReducer.gpxTrack.trackPoints,
-      peakCoordinates
+    const parser = new DOMParser();
+    const gpxDocXml = parser.parseFromString(peakData.gpxContent, "text/xml");
+    const gpxPeakTrack = new GPXPeakTrack(
+      peakData.trackPoints,
+      peakData.peakCoordinates
     );
-    await fillFormFields(track);
+    console.log(
+      "processGPXData: Peak coordinates:",
+      gpxPeakTrack.peakCoordinates
+    );
+    await fillFormFields(gpxPeakTrack);
     await uploadTrack(gpxDocXml);
   } catch (error) {
     console.error("Error processing GPX:", error, error.stack);
@@ -58,41 +53,41 @@ async function uploadTrack(gpxDocXml) {
   await clickPreviewAndNotify();
 }
 
-async function fillFormFields(track) {
-  console.log("Filling form fields");
+async function fillFormFields(peak) {
+  console.log("Filling form fields with peak", peak);
 
   // Date
-  document.getElementById("DateText").value = track.startDate;
+  document.getElementById("DateText").value = peak.startDate;
 
   // Ascent stats
   // Starting elevation
-  await updateFormId("StartFt", Math.round(track.startElevationFt));
+  await updateFormId("StartFt", Math.round(peak.startElevationFt));
   // Net gain
   const pbNetGain = parseInt(document.getElementById("GainFt").value);
   // PB is a little weird having a net gain and extra gain instead of one number for gain
-  const extraGain = track.toPeakTrack.gainFt - pbNetGain;
+  const extraGain = peak.toPeakTrack.gainFt - pbNetGain;
   if (extraGain > 0) {
     await updateFormId("ExUpFt", Math.round(extraGain));
   }
-  await updateFormId("UpMi", track.toPeakTrack.miles);
-  document.getElementById("UpDay").value = track.toPeakTrack.duration.days;
-  document.getElementById("UpHr").value = track.toPeakTrack.duration.hours;
-  document.getElementById("UpMin").value = track.toPeakTrack.duration.minutes;
+  await updateFormId("UpMi", peak.toPeakTrack.miles);
+  document.getElementById("UpDay").value = peak.toPeakTrack.duration.days;
+  document.getElementById("UpHr").value = peak.toPeakTrack.duration.hours;
+  document.getElementById("UpMin").value = peak.toPeakTrack.duration.minutes;
 
   // Descent Stats
   // Ending elevation and loss
-  await updateFormId("EndFt", Math.round(track.endElevationFt));
+  await updateFormId("EndFt", Math.round(peak.endElevationFt));
 
-  await updateFormId("DnMi", track.fromPeakTrack.miles);
+  await updateFormId("DnMi", peak.fromPeakTrack.miles);
   // Extra elevation gains/losses
-  await updateFormId("ExDnFt", Math.round(track.fromPeakTrack.gainFt));
-  document.getElementById("DnDay").value = track.fromPeakTrack.duration.days;
-  document.getElementById("DnHr").value = track.fromPeakTrack.duration.hours;
-  document.getElementById("DnMin").value = track.fromPeakTrack.duration.minutes;
-  let gpxSummary = `Total distance: ${track.miles} miles\n`;
-  gpxSummary += `Total elevation gain: ${track.gainFt} ft\n`;
-  gpxSummary += `Total elevation loss: ${track.lossFt} ft\n`;
-  gpxSummary += `Total duration: ${track.duration.days} days, ${track.duration.hours} hours, ${track.duration.minutes} minutes`;
+  await updateFormId("ExDnFt", Math.round(peak.fromPeakTrack.gainFt));
+  document.getElementById("DnDay").value = peak.fromPeakTrack.duration.days;
+  document.getElementById("DnHr").value = peak.fromPeakTrack.duration.hours;
+  document.getElementById("DnMin").value = peak.fromPeakTrack.duration.minutes;
+  let gpxSummary = `Total distance: ${peak.miles} miles\n`;
+  gpxSummary += `Total elevation gain: ${peak.gainFt} ft\n`;
+  gpxSummary += `Total elevation loss: ${peak.lossFt} ft\n`;
+  gpxSummary += `Total duration: ${peak.duration.days} days, ${peak.duration.hours} hours, ${peak.duration.minutes} minutes`;
   await updateFormId("JournalText", gpxSummary);
 }
 

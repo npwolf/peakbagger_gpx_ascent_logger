@@ -201,7 +201,7 @@ class GPXPeakTrack extends GPXTrack {
         this.peakCoordinates.lat,
         this.peakCoordinates.lon
       );
-      return metersToFeet(distMeters);
+      this.#closestDistanceFtToPeak = metersToFeet(distMeters);
     }
     return this.#closestDistanceFtToPeak;
   }

@@ -12,24 +12,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch((error) => sendResponse({ error: error.message }));
     return true;
   }
+
   if (request.action === "draftPBAscent") {
-    draftPBAscent(
-      request.gpxContent,
-      request.peakId,
-      request.peakCoordinates,
-      request.userId
-    );
+    draftPBAscent(request.userId, request.peakData);
     return true; // Keep message channel open for async response
   }
   if (request.action === "draftMultiplePBAscents") {
-    for (const peak of request.peaks) {
-      console.log("Drafting ascent for peak:", peak);
-      draftPBAscent(
-        request.gpxContent,
-        peak.peakId,
-        peak.peakCoordinates,
-        request.userId
-      );
+    console.log("Drafting multiple ascents", request.peaksData);
+    for (const peakData of request.peaksData) {
+      console.log("Drafting ascent for peak:", peakData);
+      draftPBAscent(request.userId, peakData);
     }
     return true; // Keep message channel open for async response
   }
@@ -67,10 +59,10 @@ async function handlePeakSearch(searchText, userId) {
   }
 }
 
-async function draftPBAscent(gpxContent, peakId, peakCoordinates, userId) {
+async function draftPBAscent(userId, peakData) {
   try {
     // Create the tab
-    const url = `https://peakbagger.com/climber/ascentedit.aspx?pid=${peakId}&cid=${userId}`;
+    const url = `https://peakbagger.com/climber/ascentedit.aspx?pid=${peakData.id}&cid=${userId}`;
     const tab = await chrome.tabs.create({ url });
 
     // Wait for page load
@@ -88,14 +80,13 @@ async function draftPBAscent(gpxContent, peakId, peakCoordinates, userId) {
 
     console.log(
       "Sending GPX content to new tab: ",
-      peakCoordinates.lat,
-      peakCoordinates.lon
+      peakData.peakCoordinates.lat,
+      peakData.peakCoordinates.lon
     );
     // Send the GPX content to the tab
     await chrome.tabs.sendMessage(tab.id, {
       action: "processGPXContent",
-      gpxContent: gpxContent,
-      gpxCoordinates: { lat: peakCoordinates.lat, lon: peakCoordinates.lon },
+      peakData: peakData,
     });
   } catch (error) {
     console.error("Error processing GPX in new tab:", error);
