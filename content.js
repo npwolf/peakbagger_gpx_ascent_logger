@@ -57,7 +57,12 @@ async function fillFormFields(peak) {
   console.log("Filling form fields with peak", peak);
 
   // Date
-  document.getElementById("DateText").value = peak.startDate;
+  document.getElementById("DateText").value = peak.peakDate;
+
+  // Extract hh:mm (pb only allows 5 chars)
+  const timeMatch = peak.peakTime.toString().match(/(\d{1,2}):(\d{1,2})/);
+  const suffixText = timeMatch ? timeMatch[0] : "";
+  document.getElementById("SuffixText").value = suffixText;
 
   // Ascent stats
   // Starting elevation
@@ -84,11 +89,6 @@ async function fillFormFields(peak) {
   document.getElementById("DnDay").value = peak.fromPeakTrack.duration.days;
   document.getElementById("DnHr").value = peak.fromPeakTrack.duration.hours;
   document.getElementById("DnMin").value = peak.fromPeakTrack.duration.minutes;
-  let gpxSummary = `Total distance: ${peak.miles} miles\n`;
-  gpxSummary += `Total elevation gain: ${peak.gainFt} ft\n`;
-  gpxSummary += `Total elevation loss: ${peak.lossFt} ft\n`;
-  gpxSummary += `Total duration: ${peak.duration.days} days, ${peak.duration.hours} hours, ${peak.duration.minutes} minutes`;
-  await updateFormId("JournalText", gpxSummary);
 }
 
 // Click preview and wait for page to reload before displaying notification

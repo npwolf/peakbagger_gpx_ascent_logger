@@ -155,6 +155,18 @@ class GPXPeakTrack extends GPXTrack {
     return this.#peakIndex;
   }
 
+  get peakDate() {
+    // TODO Use the timezone from where the coordinates are located
+    const localDate = new Date(this.closestPoint.datetime);
+    return localDate.toLocaleDateString("en-CA");
+  }
+
+  get peakTime() {
+    // TODO Use the timezone from where the coordinates are located
+    const localDate = new Date(this.closestPoint.datetime);
+    return localDate.toLocaleTimeString("en-US", { hour12: false });
+  }
+
   get closestPoint() {
     if (this.#closestPoint === null) {
       this.findClosestPointToPeak();

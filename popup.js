@@ -49,23 +49,23 @@ function handleFileSelection() {
     if (file) {
       const reader = new FileReader();
       const fileName = file.name;
-      reader.onload = (e) => handleFileLoad(e.target.result, fileName);
+      reader.onload = (e) => handleFileLoad(fileName, e.target.result);
       reader.readAsText(file);
     }
   };
   fileInput.click();
 }
 
-async function handleFileLoad(content, fileName) {
+async function handleFileLoad(fileName, content) {
   try {
     document.getElementById("error-message").classList.add("hidden");
     document.getElementById("mode-selection").classList.add("hidden");
     document.getElementById("peak-selection").classList.add("hidden");
     document.getElementById("manual-search").classList.add("hidden");
-    gpxDocText = content;
     const parser = new DOMParser();
-    let gpxDocXml = parser.parseFromString(gpxDocText, "text/xml");
-    const gpxTrackReducer = new GPXTrackReducer(gpxDocXml);
+    const gpxTrackReducer = new GPXTrackReducer(
+      parser.parseFromString(content, "text/xml")
+    );
     const trackPointsBefore = gpxTrackReducer.gpxTrack.trackPoints.length;
     if (gpxTrackReducer.reduceGPXTrack(MAX_PEAKBAGGER_GPX_POINTS)) {
       const reductionMessage = `Smoothed GPX track to reduce points from ${trackPointsBefore} to ${gpxTrackReducer.gpxTrack.trackPoints.length}. Peakbagger does not allow more than that.`;
@@ -74,7 +74,8 @@ async function handleFileLoad(content, fileName) {
       document.getElementById("points-reduction").classList.remove("hidden");
       console.log(reductionMessage);
     }
-    gpxDocXml = gpxTrackReducer.gpxDocXml;
+    const serializer = new XMLSerializer();
+    gpxDocText = serializer.serializeToString(gpxTrackReducer.gpxDocXml);
     gpxTrack = gpxTrackReducer.gpxTrack;
     const selectedFile = document.getElementById("selected-file");
     selectedFile.textContent = fileName;
