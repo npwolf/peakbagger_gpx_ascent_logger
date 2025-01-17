@@ -1,10 +1,14 @@
 #!/bin/bash
 
+# Get version from manifest.json
+VERSION=$(jq -r '.version' manifest.json)
+ZIP_NAME="peakbagger_gpx_ascent_logger-v${VERSION}.zip"
+
 # Remove existing zip if present
-rm -f peakbagger_gpx_ascent_logger.zip
+rm -f "$ZIP_NAME"
 
 # Create zip with required extension files
-zip -r peakbagger_gpx_ascent_logger.zip \
+zip -r "$ZIP_NAME" \
     manifest.json \
     *.js \
     *.html \
@@ -14,10 +18,10 @@ zip -r peakbagger_gpx_ascent_logger.zip \
     -x "*/.git/*"
 
 # Verify zip was created
-if [ -f peakbagger_gpx_ascent_logger.zip ]; then
-    echo "✅ peakbagger_gpx_ascent_logger.zip created successfully"
-    echo "📦 Size: $(du -h peakbagger_gpx_ascent_logger.zip | cut -f1)"
+if [ -f "$ZIP_NAME" ]; then
+    echo "✅ $ZIP_NAME created successfully"
+    echo "📦 Size: $(du -h "$ZIP_NAME" | cut -f1)"
 else
-    echo "❌ Failed to create peakbagger_gpx_ascent_logger.zip"
+    echo "❌ Failed to create $ZIP_NAME"
     exit 1
 fi
