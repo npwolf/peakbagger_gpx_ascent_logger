@@ -1,0 +1,3 @@
+- Convert date/time to local time of peak coordinates
+- Create trips for multi-peak ascents
+
