@@ -2,6 +2,8 @@
 
 A Chrome extension that simplifies logging ascents on peakbagger.com by using your GPX track as the starting point.
 
+<img width="329" alt="Image" src="https://github.com/user-attachments/assets/99092973-2bd8-4b4d-897c-888a58d672c4" />
+
 ## Features
 
 - **Automatic Peak Detection**: Analyzes your GPX track and automatically identifies nearby peaks from Peakbagger's database
