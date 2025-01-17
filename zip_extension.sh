@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Remove existing zip if present
-rm -f add_ascent_to_peakbagger.zip
+rm -f peakbagger_gpx_ascent_logger.zip
 
 # Create zip with required extension files
-zip -r add_ascent_to_peakbagger.zip \
+zip -r peakbagger_gpx_ascent_logger.zip \
     manifest.json \
     *.js \
     *.html \
@@ -14,10 +14,10 @@ zip -r add_ascent_to_peakbagger.zip \
     -x "*/.git/*"
 
 # Verify zip was created
-if [ -f add_ascent_to_peakbagger.zip ]; then
-    echo "✅ add_ascent_to_peakbagger.zip created successfully"
-    echo "📦 Size: $(du -h add_ascent_to_peakbagger.zip | cut -f1)"
+if [ -f peakbagger_gpx_ascent_logger.zip ]; then
+    echo "✅ peakbagger_gpx_ascent_logger.zip created successfully"
+    echo "📦 Size: $(du -h peakbagger_gpx_ascent_logger.zip | cut -f1)"
 else
-    echo "❌ Failed to create add_ascent_to_peakbagger.zip"
+    echo "❌ Failed to create peakbagger_gpx_ascent_logger.zip"
     exit 1
 fi

@@ -62,7 +62,7 @@ Common issues and their solutions:
 
 If you encounter a bug or have a suggestion:
 
-1. Check the [existing issues](https://github.com/nelsonwolf/add_ascent_to_peakbagger/issues) to avoid duplicates
+1. Check the [existing issues](https://github.com/nelsonwolf/peakbagger_gpx_ascent_logger/issues) to avoid duplicates
 2. Create a new issue with:
    - A clear description of the problem
    - Steps to reproduce the issue

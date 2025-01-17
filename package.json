@@ -1,5 +1,5 @@
 {
-  "name": "add_ascent_to_peakbagger",
+  "name": "peakbagger_gpx_ascent_logger",
   "version": "1.0.0",
   "description": "Chrome extension to add ascent to Peakbagger",
   "main": "popup.js",
