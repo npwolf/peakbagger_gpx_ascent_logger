@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Peakbagger GPX Ascent Logger",
-  "version": "1.0",
+  "version": "0.0.1",
   "description": "Automatically fill Peakbagger ascent form using GPX data",
   "permissions": ["activeTab", "tabs", "scripting", "storage"],
   "host_permissions": [

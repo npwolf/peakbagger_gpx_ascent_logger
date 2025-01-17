@@ -11,6 +11,7 @@
   "globals": {
     "chrome": "readonly"
   },
+  "ignorePatterns": ["README.md"],
   "rules": {
     "semi": ["error", "always"],
     "quotes": ["error", "double"],
