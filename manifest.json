@@ -11,7 +11,9 @@
   },
   "permissions": ["tabs", "scripting", "storage"],
   "host_permissions": [
-    "https://peakbagger.com/*"
+    "https://peakbagger.com/Default.aspx",
+    "https://peakbagger.com/m/ps.aspx*",
+    "https://peakbagger.com/m/pt.ashx*"
   ],
   "action": {
     "default_icon": {
@@ -27,7 +29,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://peakbagger.com/*"],
+      "matches": ["https://peakbagger.com/climber/ascentedit.aspx*"],
       "js": ["gpx-utils.js", "content.js"]
     }
   ]
