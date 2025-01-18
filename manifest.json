@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Peakbagger GPX Ascent Logger",
   "version": "0.0.1",
-  "description": "Automatically draft ascent records using GPX files on Peakbagger.com",
+  "description": "Automatically draft Peakbagger.com ascent records using GPX files.",
   "icons": {
     "16": "icon16.png",
     "32": "icon32.png",
