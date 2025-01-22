@@ -9,7 +9,7 @@
     "48": "icon48.png",
     "128": "icon128.png"
   },
-  "permissions": ["tabs", "storage"],
+  "permissions": ["storage"],
   "host_permissions": [
     "https://peakbagger.com/Default.aspx",
     "https://peakbagger.com/m/ps.aspx*",
