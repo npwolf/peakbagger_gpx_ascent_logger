@@ -10,7 +10,7 @@ chrome.downloads.onChanged.addListener((downloadDelta) => {
           chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
             if (tabs[0]) {
               chrome.tabs.sendMessage(tabs[0].id, {
-                type: 'GPX_DOWNLOAD',
+                action: 'gpxDownload',
                 filename: downloadItem.filename,
                 url: downloadItem.url
               });
