@@ -10,51 +10,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const userChoice = confirm('Do you want to send this to Peakbagger?');
 
     if (userChoice) {
-      // Cancel the original download
-      chrome.runtime.sendMessage({
-        type: 'CANCEL_DOWNLOAD',
-        downloadId: message.downloadId
-      });
-
-      // Fetch the GPX file content
+      // Just fetch and process the GPX file, letting the download continue normally
       fetch(message.url)
         .then(response => response.text())
         .then(gpxContent => {
-          // Pass both the content and filename to the handler
-          handleGPXDownload(gpxContent, message.filename);
+          chrome.runtime.sendMessage({
+            action: 'openPopupWithFile',
+            fileData: {
+              content: gpxContent,
+              name: message.filename
+            }
+          });
         })
         .catch(error => {
           console.error('Error fetching GPX file:', error);
-          // If there's an error, resume the original download
-          chrome.runtime.sendMessage({
-            type: 'RESUME_DOWNLOAD',
-            downloadId: message.downloadId
-          });
         });
-    } else {
-      // User clicked "No", resume the normal download
-      chrome.runtime.sendMessage({
-        type: 'RESUME_DOWNLOAD',
-        downloadId: message.downloadId
-      });
     }
   }
 });
-
-function handleGPXDownload(gpxContent, filename) {
-  // Create a Blob from the GPX content
-  const blob = new Blob([gpxContent], { type: 'application/gpx+xml' });
-  const file = new File([blob], filename, { type: 'application/gpx+xml' });
-
-  // Open the popup and pass the file data
-  chrome.runtime.sendMessage({
-    action: 'openPopupWithFile',
-    fileData: {
-      content: gpxContent,
-      name: filename
-    }
-  });
-}
 
 chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
   console.log("Message received:", request);

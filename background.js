@@ -1,49 +1,43 @@
-chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
-  console.log("downloadItem:", downloadItem);
-  if (downloadItem.filename.toLowerCase().endsWith('.gpx')) {  // Fixed: endsWith with capital 'S'
-    // Create a notification to the content script
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-      if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, {
-          type: 'GPX_DOWNLOAD',
-          downloadId: downloadItem.id,
-          filename: downloadItem.filename,
-          url: downloadItem.url
-        });
+chrome.downloads.onChanged.addListener((downloadDelta) => {
+  // Check if the download has completed
+  if (downloadDelta.state && downloadDelta.state.current === 'complete') {
+    // Get the full download information
+    chrome.downloads.search({id: downloadDelta.id}, function(downloads) {
+      if (downloads && downloads[0]) {
+        const downloadItem = downloads[0];
+        if (downloadItem.filename.toLowerCase().endsWith('.gpx')) {
+          // Notify content script
+          chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+            if (tabs[0]) {
+              chrome.tabs.sendMessage(tabs[0].id, {
+                type: 'GPX_DOWNLOAD',
+                filename: downloadItem.filename,
+                url: downloadItem.url
+              });
+            }
+          });
+        }
       }
     });
-
-    // Pause the download until user makes a decision
-    suggest({filename: downloadItem.filename, suspend: true});
-    return true;
-  }
-  return false;
-});
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'RESUME_DOWNLOAD') {
-    chrome.downloads.resume(message.downloadId);
-  } else if (message.type === 'CANCEL_DOWNLOAD') {
-    chrome.downloads.cancel(message.downloadId);
   }
 });
 
+// Remove download management message listeners
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'openPopupWithFile') {
-    chrome.windows.create({
-      url: 'popup.html',
-      type: 'popup',
-      width: 400,
-      height: 600
-    }, (window) => {
-      // Wait a bit for the popup to load, then send the file data
-      setTimeout(() => {
-        chrome.runtime.sendMessage({
-          action: 'processDownloadedFile',
-          fileData: message.fileData
-        });
-      }, 500);
-    });
+    console.log("Opening popup with file data:", message.fileData);
+    chrome.action.openPopup()
+      .then(() => {
+        setTimeout(() => {
+          chrome.runtime.sendMessage({
+            action: 'processDownloadedFile',
+            fileData: message.fileData
+          });
+        }, 500);
+      })
+      .catch(error => {
+        console.error('Failed to open popup:', error);
+      });
   }
 });
 
