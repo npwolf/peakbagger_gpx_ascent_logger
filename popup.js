@@ -7,6 +7,13 @@ let id2GpxPeakTrack = new Map();
 const MAX_PEAKBAGGER_GPX_POINTS = 3000;
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Add this new listener for incoming file data
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'processDownloadedFile' && message.fileData) {
+      handleFileLoad(message.fileData.name, message.fileData.content);
+    }
+  });
+
   checkLoginStatus();
   document.getElementById("login-button").addEventListener("click", () => {
     chrome.tabs.create({

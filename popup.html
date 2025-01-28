@@ -5,8 +5,19 @@
     <style>
       body {
         font-family: sans-serif;
-        margin: 10px; /* Add some margin around the content */
-        width: 300px; /* Set a fixed width for consistent appearance */
+        margin: 0 auto;
+        padding: 20px;
+        min-width: 300px;
+        max-width: 600px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      /* Container for main content */
+      #main-content, #login-section, #loading-section {
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
       }
 
       h1 {
@@ -24,11 +35,14 @@
         margin-bottom: 10px;
         padding: 10px;
         border-radius: 4px;
+        width: 100%;
+        box-sizing: border-box;
       }
 
       .peak-list {
         list-style: none;
         padding: 0;
+        width: 100%;
       }
 
       .peak-list li {
@@ -41,14 +55,16 @@
 
       button {
         padding: 8px 12px;
-        background-color: #007bff; /* Use a primary color */
+        background-color: #007bff;
         color: white;
         border: none;
         border-radius: 4px;
         cursor: pointer;
         margin-top: 10px;
-        width: 100%; /* Make buttons full width */
+        width: 100%;
+        box-sizing: border-box;
       }
+
       button:hover {
         background-color: #0056b3;
       }
@@ -62,6 +78,7 @@
         display: flex;
         gap: 10px;
         margin-top: 10px;
+        width: 100%;
       }
 
       .button-group button {
@@ -125,6 +142,7 @@
         display: flex;
         gap: 10px;
         margin: 15px 0;
+        width: 100%;
       }
 
       .mode-buttons button {
@@ -134,6 +152,7 @@
 
       .file-selection {
         margin: 10px 0;
+        width: 100%;
       }
 
       .selected-file {
@@ -144,10 +163,13 @@
         border-radius: 4px;
         font-size: 0.9em;
         word-break: break-all;
+        width: 100%;
+        box-sizing: border-box;
       }
 
       .search-container {
         margin: 10px 0;
+        width: 100%;
       }
 
       .search-row {
@@ -155,6 +177,7 @@
         gap: 10px;
         margin: 5px 0;
         align-items: center;
+        width: 100%;
       }
 
       .search-row input {
@@ -162,11 +185,13 @@
         padding: 8px;
         border: 1px solid #dee2e6;
         border-radius: 4px;
+        width: 100%;
+        box-sizing: border-box;
       }
 
       .search-row button {
         margin-top: 0;
-        width: auto !important; /* Override the default full width */
+        width: auto;
         white-space: nowrap;
       }
 
@@ -178,6 +203,8 @@
         border-radius: 4px;
         color: #084298;
         font-size: 0.9em;
+        width: 100%;
+        box-sizing: border-box;
       }
 
       .error-message a {
@@ -193,6 +220,16 @@
         border-radius: 4px;
         color: #980808;
         font-size: 0.9em;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      /* Media query for popup context */
+      @media (max-width: 400px) {
+        body {
+          width: 300px;
+          padding: 10px;
+        }
       }
     </style>
   </head>
