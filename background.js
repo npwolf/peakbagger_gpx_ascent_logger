@@ -1,3 +1,37 @@
+chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
+  if (downloadItem.filename.toLowerCase().endsWith('.gpx')) {
+    // Create a notification to the content script
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          type: 'GPX_DOWNLOAD',
+          downloadId: downloadItem.id,
+          url: downloadItem.url
+        });
+      }
+    });
+
+    // Pause the download until user makes a decision
+    suggest({filename: downloadItem.filename, suspend: true});
+    return true;
+  }
+  return false;
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'RESUME_DOWNLOAD') {
+    chrome.downloads.resume(message.downloadId);
+  } else if (message.type === 'CANCEL_DOWNLOAD') {
+    chrome.downloads.cancel(message.downloadId);
+  }
+});
+
+// Function to run in the content script context
+function processGPX(fileContents) {
+  console.log("GPX file contents received:", fileContents);
+  // Add your GPX processing logic here
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log("Background received:", request);
   if (request.action === "getNearbyPeaks") {

@@ -5,6 +5,49 @@ console.log("Content script loaded");
 // Remove the DOMContentLoaded listener and check immediately
 checkForStoredNotification();
 
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'GPX_DOWNLOAD') {
+    const userChoice = confirm('Do you want to send this to Peakbagger?');
+
+    if (userChoice) {
+      // Cancel the original download
+      chrome.runtime.sendMessage({
+        type: 'CANCEL_DOWNLOAD',
+        downloadId: message.downloadId
+      });
+
+      // Fetch the GPX file content
+      fetch(message.url)
+        .then(response => response.text())
+        .then(gpxContent => {
+          // Here you can handle the GPX content
+          // For example, send it to your Peakbagger processing function
+          handlePeakbaggerUpload(gpxContent);
+        })
+        .catch(error => {
+          console.error('Error fetching GPX file:', error);
+          // If there's an error, resume the original download
+          chrome.runtime.sendMessage({
+            type: 'RESUME_DOWNLOAD',
+            downloadId: message.downloadId
+          });
+        });
+    } else {
+      // User clicked "No", resume the normal download
+      chrome.runtime.sendMessage({
+        type: 'RESUME_DOWNLOAD',
+        downloadId: message.downloadId
+      });
+    }
+  }
+});
+
+function handlePeakbaggerUpload(gpxContent) {
+  // Implement your Peakbagger upload logic here
+  console.log('Handling GPX content for Peakbagger:', gpxContent.substring(0, 100) + '...');
+  // You would typically send this to your content script for further processing
+}
+
 chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
   console.log("Message received:", request);
   if (request.action === "processGPXContent") {

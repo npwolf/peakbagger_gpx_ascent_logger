@@ -9,12 +9,14 @@
     "48": "icon48.png",
     "128": "icon128.png"
   },
-  "permissions": ["storage"],
-  "host_permissions": [
-    "https://peakbagger.com/Default.aspx",
-    "https://peakbagger.com/m/ps.aspx*",
-    "https://peakbagger.com/m/pt.ashx*"
-  ],
+  "permissions": ["storage", "downloads", "downloads.open", "webRequest"],
+  "host_permissions": ["<all_urls>"],
+  // "host_permissions": [
+  //   "https://peakbagger.com/Default.aspx",
+  //   "https://peakbagger.com/m/ps.aspx*",
+  //   "https://peakbagger.com/m/pt.ashx*",
+  //   "https://www.alltrails.com/explore/recording/*"
+  // ],
   "action": {
     "default_icon": {
       "16": "icon16.png",
@@ -29,7 +31,8 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://peakbagger.com/climber/ascentedit.aspx*"],
+      "matches": ["<all_urls>"],
+      //"matches": ["https://peakbagger.com/climber/ascentedit.aspx*"],
       "js": ["gpx-utils.js", "content.js"]
     }
   ]
