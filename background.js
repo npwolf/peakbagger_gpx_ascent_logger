@@ -26,18 +26,20 @@ chrome.downloads.onChanged.addListener((downloadDelta) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'openPopupWithFile') {
     console.log("Opening popup with file data:", message.fileData);
-    chrome.action.openPopup()
-      .then(() => {
-        setTimeout(() => {
-          chrome.runtime.sendMessage({
-            action: 'processDownloadedFile',
-            fileData: message.fileData
-          });
-        }, 500);
-      })
-      .catch(error => {
-        console.error('Failed to open popup:', error);
-      });
+    chrome.windows.create({
+      url: 'popup.html',
+      type: 'popup',
+      width: 350,
+      height: 600
+    }, (window) => {
+      // Wait for the popup window to load before sending the data
+      setTimeout(() => {
+        chrome.runtime.sendMessage({
+          action: 'processDownloadedFile',
+          fileData: message.fileData
+        });
+      }, 500);
+    });
   }
 });
 
