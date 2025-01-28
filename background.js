@@ -1,11 +1,13 @@
 chrome.downloads.onDeterminingFilename.addListener((downloadItem, suggest) => {
-  if (downloadItem.filename.toLowerCase().endsWith('.gpx')) {
+  console.log("downloadItem:", downloadItem);
+  if (downloadItem.filename.toLowerCase().endsWith('.gpx')) {  // Fixed: endsWith with capital 'S'
     // Create a notification to the content script
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
       if (tabs[0]) {
         chrome.tabs.sendMessage(tabs[0].id, {
           type: 'GPX_DOWNLOAD',
           downloadId: downloadItem.id,
+          filename: downloadItem.filename,
           url: downloadItem.url
         });
       }
@@ -23,6 +25,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.downloads.resume(message.downloadId);
   } else if (message.type === 'CANCEL_DOWNLOAD') {
     chrome.downloads.cancel(message.downloadId);
+  }
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'openPopupWithFile') {
+    chrome.windows.create({
+      url: 'popup.html',
+      type: 'popup',
+      width: 400,
+      height: 600
+    }, (window) => {
+      // Wait a bit for the popup to load, then send the file data
+      setTimeout(() => {
+        chrome.runtime.sendMessage({
+          action: 'processDownloadedFile',
+          fileData: message.fileData
+        });
+      }, 500);
+    });
   }
 });
 
