@@ -26,7 +26,7 @@ A Chrome extension that simplifies logging ascents on peakbagger.com by using yo
 
 1. **Install the Extension**
 
-   - Install from the Chrome Web Store (link coming soon)
+   - Install from the [Chrome Web Store](https://chromewebstore.google.com/detail/peakbagger-gpx-ascent-log/)
 
 2. **Login to Peakbagger**
 
