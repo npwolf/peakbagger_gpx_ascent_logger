@@ -260,22 +260,30 @@ class GPXTrackReducer {
     this.gpxTrack = GPXTrack.fromGpxDocXml(this.gpxDocXml);
   }
 
+  // PB counts all points in the GPX file, not just the track points
+  get pointsLength() {
+    const wptLength = this.gpxDocXml.getElementsByTagName("wpt").length;
+    const trkptLength = this.gpxDocXml.getElementsByTagName("trkpt").length;
+    return wptLength + trkptLength;
+  }
+
   reduceGPXTrack(targetPointsLen) {
-    if (this.gpxTrack.trackPoints.length <= targetPointsLen) {
+    if (this.pointsLength <= targetPointsLen) {
       console.log(
-        `GPX track has ${this.gpxTrack.trackPoints.length} points, which is already less than the target of ${targetPointsLen}.`
+        `GPX track has ${this.pointsLength} points, which is already less than the target of ${targetPointsLen}.`
       );
       return false;
     }
     // More efficient Ramer-Douglas-Peucker algorithm
     let points = this.rdp(this.gpxTrack.trackPoints, 0.00001); // Epsilon value, adjust as needed
 
-    if (points.length > targetPointsLen) {
+    const targetTrkptLength = targetPointsLen - this.gpxDocXml.getElementsByTagName("wpt").length;
+    if (points.length > targetTrkptLength) {
       console.log(
-        `Still need to reduce more after rdp. Reducing GPX track from ${points.length} to ${targetPointsLen} points.`
+        `Still need to reduce more after rdp. Reducing GPX track from ${points.length} to ${targetTrkptLength} points.`
       );
       // Added + 1 to ensure we don't go over the target
-      const reductionRatio = targetPointsLen / (points.length + 1);
+      const reductionRatio = targetTrkptLength / (points.length + 1);
       const newPoints = [];
       for (let i = 0; i < points.length; i += 1 / reductionRatio) {
         newPoints.push(points[Math.floor(i)]);
@@ -283,7 +291,7 @@ class GPXTrackReducer {
       points = newPoints;
     }
     console.log(
-      `Reduced GPX track from ${this.gpxTrack.trackPoints.length} to ${points.length} points.`
+      `Reduced GPX track points from ${this.gpxTrack.trackPoints.length} to ${points.length} points (accounts for waypoints).`
     );
     this.update(points);
     return true;

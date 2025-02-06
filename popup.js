@@ -66,9 +66,9 @@ async function handleFileLoad(fileName, content) {
     const gpxTrackReducer = new GPXTrackReducer(
       parser.parseFromString(content, "text/xml")
     );
-    const trackPointsBefore = gpxTrackReducer.gpxTrack.trackPoints.length;
+    const trackPointsBefore = gpxTrackReducer.pointsLength;
     if (gpxTrackReducer.reduceGPXTrack(MAX_PEAKBAGGER_GPX_POINTS)) {
-      const reductionMessage = `Smoothed GPX track to reduce points from ${trackPointsBefore} to ${gpxTrackReducer.gpxTrack.trackPoints.length}. Peakbagger does not allow more than that.`;
+      const reductionMessage = `Smoothed GPX track to reduce points from ${trackPointsBefore} to ${gpxTrackReducer.pointsLength} Peakbagger does not allow more than that.`;
       document.getElementById("points-reduction").textContent =
         reductionMessage;
       document.getElementById("points-reduction").classList.remove("hidden");
