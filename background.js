@@ -1,3 +1,54 @@
+chrome.downloads.onChanged.addListener((downloadDelta) => {
+  // Check if the download has completed
+  if (downloadDelta.state && downloadDelta.state.current === 'complete') {
+    // Get the full download information
+    chrome.downloads.search({id: downloadDelta.id}, function(downloads) {
+      if (downloads && downloads[0]) {
+        const downloadItem = downloads[0];
+        if (downloadItem.filename.toLowerCase().endsWith('.gpx')) {
+          // Notify content script
+          chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+            if (tabs[0]) {
+              chrome.tabs.sendMessage(tabs[0].id, {
+                action: 'gpxDownload',
+                filename: downloadItem.filename,
+                url: downloadItem.url
+              });
+            }
+          });
+        }
+      }
+    });
+  }
+});
+
+// Remove download management message listeners
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'openPopupWithFile') {
+    console.log("Opening popup with file data:", message.fileData);
+    chrome.windows.create({
+      url: 'popup.html',
+      type: 'popup',
+      width: 350,
+      height: 600
+    }, (window) => {
+      // Wait for the popup window to load before sending the data
+      setTimeout(() => {
+        chrome.runtime.sendMessage({
+          action: 'processDownloadedFile',
+          fileData: message.fileData
+        });
+      }, 500);
+    });
+  }
+});
+
+// Function to run in the content script context
+function processGPX(fileContents) {
+  console.log("GPX file contents received:", fileContents);
+  // Add your GPX processing logic here
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log("Background received:", request);
   if (request.action === "getNearbyPeaks") {

@@ -1,6 +1,6 @@
 /* global GPXPeakTrack */
 window.contentScriptLoaded = true;
-console.log("Content script loaded");
+console.log("Peakbagger content script loaded");
 
 // Remove the DOMContentLoaded listener and check immediately
 checkForStoredNotification();

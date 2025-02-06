@@ -9,11 +9,12 @@
     "48": "icon48.png",
     "128": "icon128.png"
   },
-  "permissions": ["storage"],
+  "permissions": ["storage", "downloads"],
   "host_permissions": [
     "https://peakbagger.com/Default.aspx",
     "https://peakbagger.com/m/ps.aspx*",
-    "https://peakbagger.com/m/pt.ashx*"
+    "https://peakbagger.com/m/pt.ashx*",
+    "https://www.alltrails.com/explore/recording/*"
   ],
   "action": {
     "default_icon": {
@@ -31,6 +32,19 @@
     {
       "matches": ["https://peakbagger.com/climber/ascentedit.aspx*"],
       "js": ["gpx-utils.js", "content.js"]
+    },
+    {
+      "matches": [
+        "https://gaiagps.com/*",
+        "https://*.gaiagps.com/*",
+        "https://strava.com/*",
+        "https://*.strava.com/*",
+        "https://alltrails.com/*",
+        "https://*.alltrails.com/*",
+        "https://caltopo.com/*",
+        "https://*.caltopo.com/*"
+      ],
+      "js": ["download-gpx-content.js"]
     }
   ]
 }
