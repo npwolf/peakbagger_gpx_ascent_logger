@@ -12,7 +12,7 @@
   "permissions": ["storage"],
   "host_permissions": [
     "https://peakbagger.com/Default.aspx",
-    "https://peakbagger.com/m/ps.aspx*",
+    "https://peakbagger.com/Async/PLLBB.aspx*",
     "https://peakbagger.com/m/pt.ashx*"
   ],
   "action": {

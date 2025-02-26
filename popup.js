@@ -186,6 +186,8 @@ function parsePBBoundingBoxResponse(text) {
     peakTrack.prominence = parseInt(pbPeak.getAttribute("r"));
     // TODO get api to return elevation
     peakTrack.elevationFt = 0;
+    // TODO get api to return location
+    peakTrack.location = '';
 
     return peakTrack;
   });
