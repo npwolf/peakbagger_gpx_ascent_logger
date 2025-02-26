@@ -1,5 +1,14 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log("Background received:", request);
+
+  // Add new handler for bounding box search
+  if (request.action === "getPeaksInBoundingBox") {
+    handlePeaksInBoundingBox(request.boundingBox)
+      .then((data) => sendResponse(data))
+      .catch((error) => sendResponse({ error: error.message }));
+    return true;
+  }
+
   if (request.action === "getNearbyPeaks") {
     handleNearbyPeaksFetch(request.lat, request.lon, request.userId)
       .then((data) => sendResponse(data))
@@ -26,6 +35,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep message channel open for async response
   }
 });
+
+async function handlePeaksInBoundingBox(boundingBox) {
+  try {
+    const url = `https://www.peakbagger.com/Async/PLLBB.aspx?miny=${boundingBox.miny}&maxy=${boundingBox.maxy}&minx=${boundingBox.minx}&maxx=${boundingBox.maxx}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const text = await response.text();
+    console.log("Peaks in bounding box response:", text);
+    return { peaksText: text };
+  } catch (error) {
+    console.error(error);
+    return { error: error.message };
+  }
+}
 
 async function handleNearbyPeaksFetch(lat, lon, userId) {
   try {
