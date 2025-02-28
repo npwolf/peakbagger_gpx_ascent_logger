@@ -31,7 +31,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 async function handlePeaksInBoundingBox(boundingBox) {
   try {
-    const url = `https://peakbagger.com/Async/PLLBB.aspx?miny=${boundingBox.miny}&maxy=${boundingBox.maxy}&minx=${boundingBox.minx}&maxx=${boundingBox.maxx}`;
+    const url = `https://peakbagger.com/Async/pllbb2.aspx?miny=${boundingBox.miny}&maxy=${boundingBox.maxy}&minx=${boundingBox.minx}&maxx=${boundingBox.maxx}`;
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
