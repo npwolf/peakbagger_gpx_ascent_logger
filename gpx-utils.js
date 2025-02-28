@@ -4,6 +4,18 @@ console.log("GPX utils loaded");
 // Define a constant for the vertical noise threshold
 const ELEVATION_THRESHOLD_METERS = 10;
 
+function feetToLatitudeDegrees(feet) {
+  // 1 degree of latitude is approximately 364,000 feet
+  return feet / 364000;
+}
+
+function feetToLongitudeDegrees(feet, latitude) {
+  // 1 degree of longitude varies with latitude
+  // At the equator it's about 364,000 feet, and decreases with cos(latitude)
+  const latitudeRadians = (latitude * Math.PI) / 180;
+  return feet / (364000 * Math.cos(latitudeRadians));
+}
+
 /**
  * Base class for GPX track analysis with basic functionality.
  */
@@ -123,6 +135,35 @@ class GPXTrack {
       this.#duration = { days, hours, minutes };
     }
     return this.#duration;
+  }
+
+  get boundingBox() {
+    const paddingFeet = 500;
+    let minx = Infinity;
+    let maxx = -Infinity;
+    let miny = Infinity;
+    let maxy = -Infinity;
+
+    // Find the basic bounding box
+    for (const point of this.trackPoints) {
+      minx = Math.min(minx, point.lon);
+      maxx = Math.max(maxx, point.lon);
+      miny = Math.min(miny, point.lat);
+      maxy = Math.max(maxy, point.lat);
+    }
+
+    // Calculate padding in degrees (use the middle latitude for longitude conversion)
+    const midLat = (miny + maxy) / 2;
+    const latPadding = feetToLatitudeDegrees(paddingFeet);
+    const lonPadding = feetToLongitudeDegrees(paddingFeet, midLat);
+
+    // Add padding
+    return {
+      minx: minx - lonPadding,
+      maxx: maxx + lonPadding,
+      miny: miny - latPadding,
+      maxy: maxy + latPadding
+    };
   }
 }
 

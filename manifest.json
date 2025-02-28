@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Peakbagger GPX Ascent Logger",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Automatically draft Peakbagger.com ascent records using GPX files.",
   "icons": {
     "16": "icon16.png",
@@ -12,7 +12,7 @@
   "permissions": ["storage"],
   "host_permissions": [
     "https://peakbagger.com/Default.aspx",
-    "https://peakbagger.com/m/ps.aspx*",
+    "https://peakbagger.com/Async/pllbb2.aspx*",
     "https://peakbagger.com/m/pt.ashx*"
   ],
   "action": {

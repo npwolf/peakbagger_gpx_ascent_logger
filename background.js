@@ -1,7 +1,9 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log("Background received:", request);
-  if (request.action === "getNearbyPeaks") {
-    handleNearbyPeaksFetch(request.lat, request.lon, request.userId)
+
+  // Add new handler for bounding box search
+  if (request.action === "getPeaksInBoundingBox") {
+    handlePeaksInBoundingBox(request.boundingBox)
       .then((data) => sendResponse(data))
       .catch((error) => sendResponse({ error: error.message }));
     return true;
@@ -27,15 +29,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-async function handleNearbyPeaksFetch(lat, lon, userId) {
+async function handlePeaksInBoundingBox(boundingBox) {
   try {
-    const url = `https://peakbagger.com/m/pt.ashx?pn=APIGetNearbyPeaks&p1=${lat}&p2=${lon}&p3=${userId}&p4=1&p5=0&p9=0&p10=0&p6=-32000&p11=32000&p7=0&p8=50&p12='en'&p13=0&p14=0&p15=''&p16=0&p17=0.0`;
+    const url = `https://peakbagger.com/Async/pllbb2.aspx?miny=${boundingBox.miny}&maxy=${boundingBox.maxy}&minx=${boundingBox.minx}&maxx=${boundingBox.maxx}`;
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const text = await response.text();
-    console.log("Nearby peaks text:", text);
+    console.log("Peaks in bounding box response:", text);
     return { peaksText: text };
   } catch (error) {
     console.error(error);

@@ -143,12 +143,11 @@ async function autoDetectPeaks() {
 }
 
 async function getNearbyPeaks() {
-  const midPoint = gpxTrack.roughMidPoint;
+  const boundingBox = gpxTrack.boundingBox;
   try {
     const response = await chrome.runtime.sendMessage({
-      action: "getNearbyPeaks",
-      lat: midPoint.lat,
-      lon: midPoint.lon,
+      action: "getPeaksInBoundingBox",
+      boundingBox: boundingBox,
       userId: userId,
     });
 
@@ -157,7 +156,7 @@ async function getNearbyPeaks() {
       alert("Failed to fetch nearby peaks from Peakbagger!");
       return [];
     }
-    const nearbyPeaks = await parsePBPeaksResponse(response.peaksText);
+    const nearbyPeaks = parsePBBoundingBoxResponse(response.peaksText);
     // Filter peaks by distance
     const filteredNearbyPeaks = nearbyPeaks.filter(
       (peak) => peak.closestDistanceFtToPeak < 500
@@ -167,6 +166,32 @@ async function getNearbyPeaks() {
     console.error("Error fetching nearby peaks:", error);
     throw new Error("Failed to fetch nearby peaks");
   }
+}
+
+function parsePBBoundingBoxResponse(text) {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(text, "text/xml");
+
+  // Convert XML to array of GPXPeakTrack objects
+  const peaks = Array.from(xmlDoc.getElementsByTagName("t")).map((pbPeak) => {
+    const lat = parseFloat(pbPeak.getAttribute("a"));
+    const lon = parseFloat(pbPeak.getAttribute("o"));
+
+    // Create new GPXPeakTrack with track points and peak coordinates
+    const peakTrack = new GPXPeakTrack(gpxTrack.trackPoints, { lat, lon });
+
+    // Add peak metadata
+    peakTrack.id = parseInt(pbPeak.getAttribute("i"));
+    peakTrack.name = pbPeak.getAttribute("n");
+    peakTrack.prominence = parseInt(pbPeak.getAttribute("r"));
+    // TODO get api to return elevation
+    peakTrack.elevationFt = parseInt(pbPeak.getAttribute("e"));
+    // TODO get api to return location
+    peakTrack.location = pbPeak.getAttribute("l");
+ 
+    return peakTrack;
+  });
+  return peaks;
 }
 
 async function parsePBPeaksResponse(text) {
