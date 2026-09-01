@@ -138,7 +138,9 @@ async function autoDetectPeaks() {
     displayAutoDetectedPeaks(nearbyPeaks);
   } catch (error) {
     console.error("Error autodetecting peaks:", error);
-    alert("Error autodetecting peaks. Please try again.");
+    document.getElementById("loading").classList.add("hidden");
+    document.getElementById("error-message").textContent = error.message;
+    document.getElementById("error-message").classList.remove("hidden");
   }
 }
 
@@ -153,8 +155,7 @@ async function getNearbyPeaks() {
 
     if (response.error) {
       console.error("Error fetching nearby peaks:", response.error);
-      alert("Failed to fetch nearby peaks from Peakbagger!");
-      return [];
+      throw new Error(response.error);
     }
     const nearbyPeaks = parsePBBoundingBoxResponse(response.peaksText);
     // Filter peaks by distance
@@ -164,7 +165,7 @@ async function getNearbyPeaks() {
     return filteredNearbyPeaks;
   } catch (error) {
     console.error("Error fetching nearby peaks:", error);
-    throw new Error("Failed to fetch nearby peaks");
+    throw new Error(`Failed to fetch nearby peaks: ${error.message}`);
   }
 }
 
@@ -188,7 +189,7 @@ function parsePBBoundingBoxResponse(text) {
     peakTrack.elevationFt = parseInt(pbPeak.getAttribute("e"));
     // TODO get api to return location
     peakTrack.location = pbPeak.getAttribute("l");
- 
+
     return peakTrack;
   });
   return peaks;
@@ -222,7 +223,7 @@ async function parsePBPeaksResponse(text) {
   return peaks;
 }
 
-function updateLoginSections(isLoggedIn) {
+function updateLoginSections(isLoggedIn, detail) {
   document.getElementById("loading-section").classList.add("hidden");
   document
     .getElementById("login-section")
@@ -230,31 +231,37 @@ function updateLoginSections(isLoggedIn) {
   document
     .getElementById("main-content")
     .classList.toggle("hidden", !isLoggedIn);
+
+  const detailElement = document.getElementById("login-detail");
+  detailElement.textContent = detail || "";
+  detailElement.classList.toggle("hidden", !detail);
 }
 
+// The popup runs on the chrome-extension:// origin, and peakbagger.com is
+// behind Cloudflare, which answers requests from that origin with a bot
+// challenge instead of the page. So login state comes from pb-session.js,
+// which reads the climber id off peakbagger.com pages the user visits.
 async function checkLoginStatus() {
   try {
-    const response = await fetch("https://peakbagger.com/Default.aspx");
-    const text = await response.text();
-    const match = text.match(
-      /href="climber\/climber\.aspx\?cid=(\d+)">My Home Page<\/a>/
-    );
-
-    if (match && match[1]) {
-      userId = match[1];
+    const { pbSession } = await chrome.storage.local.get("pbSession");
+    if (pbSession && pbSession.climberId) {
+      userId = pbSession.climberId;
       updateLoginSections(true);
-    } else {
-      updateLoginSections(false);
+      return;
     }
+    updateLoginSections(
+      false,
+      "If you are already logged in, open peakbagger.com in a tab, then reopen this popup."
+    );
   } catch (error) {
     console.error("Error checking login status:", error);
-    updateLoginSections(false);
+    updateLoginSections(false, error.message);
   }
 }
 
 async function openAscentTabs() {
   const checkboxes = document.querySelectorAll(
-    ".peak-list input[type=\"checkbox\"]:checked"
+    '.peak-list input[type="checkbox"]:checked'
   );
   if (!gpxDocText) return;
 
@@ -309,8 +316,7 @@ async function searchPeaksManual() {
     });
 
     if (response.error) {
-      console.error("Error searching peaks:", response.error);
-      return;
+      throw new Error(response.error);
     }
 
     const peaks = await parsePBPeaksResponse(response.peaksText);
@@ -319,6 +325,11 @@ async function searchPeaksManual() {
     document.getElementById("search-results").classList.remove("hidden");
   } catch (error) {
     console.error("Error during peak search:", error);
+    document.getElementById("loading").classList.add("hidden");
+    document.getElementById(
+      "error-message"
+    ).textContent = `Peak search failed: ${error.message}`;
+    document.getElementById("error-message").classList.remove("hidden");
   }
 }
 

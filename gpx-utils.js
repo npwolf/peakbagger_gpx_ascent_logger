@@ -162,7 +162,7 @@ class GPXTrack {
       minx: minx - lonPadding,
       maxx: maxx + lonPadding,
       miny: miny - latPadding,
-      maxy: maxy + latPadding
+      maxy: maxy + latPadding,
     };
   }
 }
@@ -318,7 +318,8 @@ class GPXTrackReducer {
     // More efficient Ramer-Douglas-Peucker algorithm
     let points = this.rdp(this.gpxTrack.trackPoints, 0.00001); // Epsilon value, adjust as needed
 
-    const targetTrkptLength = targetPointsLen - this.gpxDocXml.getElementsByTagName("wpt").length;
+    const targetTrkptLength =
+      targetPointsLen - this.gpxDocXml.getElementsByTagName("wpt").length;
     if (points.length > targetTrkptLength) {
       console.log(
         `Still need to reduce more after rdp. Reducing GPX track from ${points.length} to ${targetTrkptLength} points.`
