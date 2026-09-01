@@ -94,7 +94,7 @@
         cursor: pointer;
       }
 
-      .radio-option input[type='radio'] {
+      .radio-option input[type="radio"] {
         margin-right: 8px;
       }
 
@@ -122,8 +122,12 @@
       }
 
       @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
       }
 
       .mode-buttons {
@@ -243,15 +247,22 @@
       <div id="manual-search" class="hidden">
         <h2>Search for Peak</h2>
         <div class="search-container">
-          <label for="peak-search">Search for the peak to log ascent for:</label>
+          <label for="peak-search"
+            >Search for the peak to log ascent for:</label
+          >
           <div class="search-row">
-            <input type="text" id="peak-search" class="search-input">
+            <input type="text" id="peak-search" class="search-input" />
             <button id="search-peaks-button">Search</button>
           </div>
           <div id="search-results" class="hidden">
-            <select id="peak-results" size="5" style="width: 100%; margin-top: 10px;">
-            </select>
-            <button id="draft-manual-ascent">Draft New Ascent in New Tab</button>
+            <select
+              id="peak-results"
+              size="5"
+              style="width: 100%; margin-top: 10px"
+            ></select>
+            <button id="draft-manual-ascent">
+              Draft New Ascent in New Tab
+            </button>
           </div>
         </div>
       </div>

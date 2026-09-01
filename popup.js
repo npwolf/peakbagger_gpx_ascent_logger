@@ -189,7 +189,7 @@ function parsePBBoundingBoxResponse(text) {
     peakTrack.elevationFt = parseInt(pbPeak.getAttribute("e"));
     // TODO get api to return location
     peakTrack.location = pbPeak.getAttribute("l");
- 
+
     return peakTrack;
   });
   return peaks;
@@ -261,7 +261,7 @@ async function checkLoginStatus() {
 
 async function openAscentTabs() {
   const checkboxes = document.querySelectorAll(
-    ".peak-list input[type=\"checkbox\"]:checked"
+    '.peak-list input[type="checkbox"]:checked'
   );
   if (!gpxDocText) return;
 

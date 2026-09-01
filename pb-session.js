@@ -7,7 +7,7 @@
   const SESSION_KEY = "pbSession";
 
   function findClimberId() {
-    for (const link of document.querySelectorAll("a[href*=\"cid=\"]")) {
+    for (const link of document.querySelectorAll('a[href*="cid="]')) {
       if (link.textContent.trim() !== "My Home Page") continue;
       const match = link.getAttribute("href").match(/[?&]cid=(\d+)/i);
       if (match) return match[1];
@@ -21,7 +21,7 @@
   function isLoggedOut() {
     return (
       !document.body.textContent.includes("Logged in:") &&
-      !!document.querySelector("a[href*=\"ogin.aspx\" i]")
+      !!document.querySelector('a[href*="ogin.aspx" i]')
     );
   }
 
