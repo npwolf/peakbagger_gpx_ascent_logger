@@ -6,15 +6,13 @@
   "scripts": {
     "prepare": "husky install"
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,css,scss,md}": [
+    "*.js": [
       "prettier --write",
       "eslint --fix"
+    ],
+    "*.{html,json,css,md}": [
+      "prettier --write"
     ]
   },
   "devDependencies": {
@@ -23,6 +21,7 @@
     "eslint": "^8.57.1",
     "globals": "^15.14.0",
     "husky": "^8.0.3",
+    "lint-staged": "^17.4.1",
     "prettier": "^2.8.8"
   }
 }
