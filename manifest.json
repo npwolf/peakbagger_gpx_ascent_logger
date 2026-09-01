@@ -10,11 +10,7 @@
     "128": "icon128.png"
   },
   "permissions": ["storage"],
-  "host_permissions": [
-    "https://peakbagger.com/Default.aspx",
-    "https://peakbagger.com/Async/pllbb2.aspx*",
-    "https://peakbagger.com/m/pt.ashx*"
-  ],
+  "host_permissions": ["https://peakbagger.com/*"],
   "action": {
     "default_icon": {
       "16": "icon16.png",
@@ -31,6 +27,10 @@
     {
       "matches": ["https://peakbagger.com/climber/ascentedit.aspx*"],
       "js": ["gpx-utils.js", "content.js"]
+    },
+    {
+      "matches": ["https://peakbagger.com/*"],
+      "js": ["pb-session.js"]
     }
   ]
 }
